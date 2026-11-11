@@ -1,0 +1,3 @@
+# What build.bat needs on top of the app's own packages. A file of its own so Dependabot updates PyInstaller too.
+-r requirements.txt
+pyinstaller==6.22.3
