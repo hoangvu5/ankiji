@@ -1,0 +1,34 @@
+# Merges Dependabot's minor and patch updates without waiting for a person; major versions
+# (which can break things) are left for a human to try and merge.
+# A merge made with GITHUB_TOKEN does not trigger other workflows, so the release build is
+# started explicitly afterwards; without that, the zip would keep the old packages.
+name: Dependabot auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write       # merge the PR
+  pull-requests: write  # merge the PR
+  actions: write        # start the release workflow
+
+jobs:
+  automerge:
+    # only Dependabot's own PRs, and only in this repo (not in forks)
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'hoangvu5/ankiji'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read what kind of update this is
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge minor and patch updates, then rebuild the release
+        # for a grouped PR this is the biggest update in the group
+        if: contains(fromJSON('["version-update:semver-minor", "version-update:semver-patch"]'), steps.meta.outputs.update-type)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr merge --merge "$PR_URL"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main
