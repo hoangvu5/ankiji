@@ -1,15 +1,19 @@
 # Ankiji - project notes for AI agents
 
-A small local web app that turns study material (PDFs, photos, Word, PowerPoint, text) into Anki flashcards with an AI, then sends them into Anki without duplicates. Built for one user on Windows, mostly for Japanese kanji/vocab study (e.g. Japanese 3rd-grade kanji worksheets with vertical text and furigana).
+An open-source (MIT) Windows app that turns study material (PDFs, photos, Word, PowerPoint, text) into Anki flashcards with an AI, sends them into Anki without duplicates, and adds anime example sentences from Nadeshiko. Started for Japanese kanji/vocab study (e.g. 3rd-grade kanji worksheets with vertical text and furigana); a Mandarin prompt and note type exist too. Users are often not technical. Contributor guide: CONTRIBUTING.md.
 
-## User preferences (follow these)
+## Project rules (follow these)
 
-- **Never use em dashes (—) or en dashes (–)** in UI text, messages, README or replies. Use "-", commas, colons or rewording.
-- The user is on **Windows** (PowerShell, not WSL). The app runs with Windows Python. Programs installed inside WSL/Ubuntu are invisible to it.
-- C: drive is low on space; the project lives on D: at `D:\VSCode\AI\anki-card-maker`.
+- **Never use em dashes or en dashes** in UI text, messages, README or replies. Use "-", commas, colons or rewording.
+- Windows only: Windows Python, PowerShell, Edge app window. Programs installed inside WSL are invisible to the app.
+- Keep it simple to use: the default path should be the easiest one, and UI text short and plain.
 - Plan first and ask questions when a request is ambiguous; otherwise just do it.
-- Keep it simple to use: the default path should be the easiest one.
-- When explaining things, be short and practical. If the user says "don't code anything", only explain.
+- When explaining things, be short and practical. If asked not to code, only explain.
+- Conventional Commits, one branch and PR per change. Never commit settings.json, caches, keys or personal data.
+
+## Maintainer's machine
+
+- C: is low on space; the project lives on D: at `D:\VSCode\AI\anki-card-maker` (the GitHub repo may be renamed to ankiji).
 
 ## Run
 
@@ -19,7 +23,7 @@ A small local web app that turns study material (PDFs, photos, Word, PowerPoint,
 
 ## Packaging (desktop app for a low-tech friend)
 
-- `build.bat` -> PyInstaller **onedir**, `--windowed`, icon `assets/icon.ico`, static files added as `app/static`. Output `dist\Ankiji\Ankiji.exe` and `dist\Ankiji.zip` (~60 MB). It deletes settings.json, nadeshiko_cache.json, app-log.txt and browser-profile from the dist folder so the user's key never ships.
+- `build.bat` -> PyInstaller **onedir**, `--windowed`, icon `assets/icon.ico`, static files added as `app/static`. Output `dist\Ankiji\Ankiji.exe` and `dist\Ankiji.zip` (~60 MB). It deletes settings.json, nadeshiko_cache.json, app-log.txt and browser-profile from the dist folder so the user's key never ships, and copies README.md, LICENSE (as LICENSE.txt) and THIRD_PARTY_NOTICES.md in, because MIT and CC BY-SA need their notices shipped with copies.
 - GitHub (private repo): `.github/workflows/release.yml` runs `build.bat` on `windows-latest` (Python 3.14) on every push to main and replaces the release tagged `latest` with the new `Ankiji.zip`. `build.bat` checks `CI` (set by GitHub): uses plain `python` and a no-op instead of `pause` (NOT `rem`: it would comment out `exit /b 1)` and break parsing). `.gitattributes` forces CRLF for .bat files.
 - `.gitignore` keeps out everything personal: settings.json (API keys, MAL username), nadeshiko_cache.json, browser-profile/, logs, .venv, build/, dist/, .claude/.
 - Chose Edge app mode over pywebview: no extra deps (pythonnet on Python 3.14 was a risk), downloads (TSV) and clipboard just work.

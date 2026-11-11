@@ -25,6 +25,8 @@ rem The build must never contain your own settings, key or cache.
 del /q "dist\Ankiji\settings.json" "dist\Ankiji\nadeshiko_cache.json" "dist\Ankiji\app-log.txt" 2>nul
 rmdir /s /q "dist\Ankiji\browser-profile" 2>nul
 copy /y "README.md" "dist\Ankiji\README.md" >nul
+copy /y "LICENSE" "dist\Ankiji\LICENSE.txt" >nul
+copy /y "THIRD_PARTY_NOTICES.md" "dist\Ankiji\THIRD_PARTY_NOTICES.md" >nul
 
 if exist "dist\Ankiji.zip" del "dist\Ankiji.zip"
 powershell -NoProfile -Command "Compress-Archive -Path 'dist\Ankiji' -DestinationPath 'dist\Ankiji.zip'" || (echo Zip failed. & %PAUSE% & exit /b 1)
