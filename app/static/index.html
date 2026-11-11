@@ -494,9 +494,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     <ol>
       <li>You need an iPhone with <b>AnkiMobile</b> (paid, from the App Store) and the <b>Shortcuts</b> app (comes with the iPhone). Your cards need the Japanese <button class="link" data-jump="guide-notetype">note type</button> from this guide, which has the <b>Get clip</b> button.</li>
       <li>Get your Nadeshiko API key (see <button class="link" data-jump="guide-nadeshiko">Nadeshiko</button>) and, in this app's <b>Nadeshiko</b> tab, click <b>Copy</b> under "JSON for the Shortcut". Send both to your iPhone, for example in a note or an email to yourself.</li>
-      <li id="clipLinkStep">On the iPhone, open the Nadeshiko Clip link and tap <b>Add Shortcut</b>.</li>
+      <li id="clipLinkStep">On the iPhone, open the Ankiji Nadeshiko link and tap <b>Add Shortcut</b>.</li>
       <li>It asks two questions: paste your <b>Nadeshiko API key</b>, then paste your <b>anime list</b> (the JSON from step 2).</li>
-      <li>Keep the name <b>Nadeshiko Clip</b>. The Get clip button looks for exactly that name.</li>
+      <li>Keep the name <b>Ankiji Nadeshiko</b>. The Get clip button looks for exactly that name.</li>
       <li>In AnkiMobile, study as usual. On a card with no media, tap <b>Get clip</b>. The first time, the iPhone asks whether the Shortcut may connect to Nadeshiko and save files: tap <b>Allow</b>.</li>
       <li>Back in AnkiMobile, edit the card. In the <b>Media</b> field, paste the subtitles, then attach the video from the Files app (it's named after the word, for example <code>生まれる.mp4</code>).</li>
       <li>If there's no clip for the word, you see "No clip on Nadeshiko". It looks in your anime first, then in all anime.</li>
@@ -1168,11 +1168,11 @@ function showTab(id){
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 { let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (s === "nadeshikoTab" || s === "guideTab") t = s; } catch (e) {} showTab(t); }
-// Shared iCloud link of the clean "Nadeshiko Clip" Shortcut (no API key inside). Empty until it exists.
+// Shared iCloud link of the clean "Ankiji Nadeshiko" Shortcut (no API key inside). Empty until it exists.
 const CLIP_SHORTCUT_LINK = "";
 $("#clipLinkStep").innerHTML = CLIP_SHORTCUT_LINK
-  ? `On the iPhone, open <a href="${CLIP_SHORTCUT_LINK}" target="_blank" rel="noopener">this Nadeshiko Clip link</a> and tap <b>Add Shortcut</b>. You can also copy it: <code>${esc(CLIP_SHORTCUT_LINK)}</code>`
-  : "Ask the person who shared Ankiji with you for the <b>Nadeshiko Clip</b> link, open it on the iPhone and tap <b>Add Shortcut</b>.";
+  ? `On the iPhone, open <a href="${CLIP_SHORTCUT_LINK}" target="_blank" rel="noopener">this Ankiji Nadeshiko link</a> and tap <b>Add Shortcut</b>. You can also copy it: <code>${esc(CLIP_SHORTCUT_LINK)}</code>`
+  : "Ask the person who shared Ankiji with you for the <b>Ankiji Nadeshiko</b> link, open it on the iPhone and tap <b>Add Shortcut</b>.";
 
 // "Top" button: only on the guide, once scrolled past the first section
 function updateToTop(){ $("#toTop").hidden = $("#guideTab").hidden || scrollY < 400; }

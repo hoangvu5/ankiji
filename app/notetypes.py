@@ -79,14 +79,14 @@ MEDIA_BLOCK = r"""{{#Media}}
 </script>
 {{/Media}}"""
 
-# No media yet: "Get clip" runs the iPhone Shortcut "Nadeshiko Clip" (Setup guide, iPhone clips),
+# No media yet: "Get clip" runs the iPhone Shortcut "Ankiji Nadeshiko" (Setup guide, iPhone clips),
 # "Browse examples" opens the word on Nadeshiko's website.
 NADESHIKO_LINK = r"""{{^Media}}
 <div id="nade-link"></div>
 <div id="nade-word" style="display:none">{{text:Front}}</div>
 <script>
 (function () {
-  var SHORTCUT = "Nadeshiko Clip";
+  var SHORTCUT = "Ankiji Nadeshiko";
   var w = (document.getElementById("nade-word").textContent || "")
     .replace(/\[[^\]]*\]/g, "").replace(/[（(][^)）]*[)）]/g, "").trim();
   if (!w) return;

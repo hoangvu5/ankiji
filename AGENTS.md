@@ -127,7 +127,7 @@ Install notes for the user (Windows):
 
 ## Ready-made note types
 
-- `notetypes.py` holds the user's Japanese templates (pasted by the user) with ONE change: the "Get clip" button (runs the user's personal iOS Shortcut "Nadeshiko Clip") was removed from the shared version; the "Browse examples" link to nadeshiko.co stays.
+- `notetypes.py` holds the user's Japanese templates (pasted by the user) with ONE change: "Get clip" calls the shareable Shortcut "Ankiji Nadeshiko" instead of the user's personal "Nadeshiko Clip"; "Browse" links to nadeshiko.co.
 - Mandarin: same Card 1; Card 2 is meaning -> recall (no handwriting: KanjiCanvas only has Japanese kanji); no Nadeshiko link (Japanese only). CSS adds Chinese fonts.
 - `POST /api/anki/create-notetype {kind}` -> `createModel` (skips if the name exists) and, for Japanese, `storeMediaFile _kanjicanvas.js`. `GET /api/notetypes` feeds the guide's copy boxes; `GET /api/notetypes/handwriting` downloads the JS for manual setup.
 - Tested with a fake AnkiConnect only (did not create models in the user's real Anki).
@@ -151,8 +151,8 @@ Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnec
 - Sending existing deck fronts to the AI so it avoids generating cards that already exist.
 - Auto-fill media right after generating (now it's a click).
 
-## iPhone clips (Shortcut "Nadeshiko Clip")
+## iPhone clips (Shortcut "Ankiji Nadeshiko")
 
-- The Japanese note type's back shows "Get clip" (runs `shortcuts://run-shortcut?name=Nadeshiko Clip&input=text&text=<word>`) and "Browse" when Media is empty. The Mandarin one has neither (Nadeshiko is Japanese only).
+- The Japanese note type's back shows "Get clip" (runs `shortcuts://run-shortcut?name=Ankiji Nadeshiko&input=text&text=<word>`; the user's own note type still calls their original "Nadeshiko Clip") and "Browse" when Media is empty. The Mandarin one has neither (Nadeshiko is Japanese only).
 - The user's Shortcut (read from its iCloud link, never stored): Text = search JSON with the anime `include` list typed in, POST /v1/search take 1 with `Authorization: Bearer <key>` in the headers of 2 "Get contents of URL" actions; if no segment, same search without the filter; if still none, notify "No clip on Nadeshiko" and open `anki://`. Otherwise download `urls.videoUrl` as `<word>.mp4` to Files (On My iPhone), copy "\nJA\nEN" (tags stripped) to the clipboard, open `anki://`. The user attaches the video and pastes the subtitles in AnkiMobile.
 - Sharing: the API key and anime list are typed into the actions, so the shared copy must use two Text actions with Import Questions (key, anime JSON) and placeholders, never the real values. `CLIP_SHORTCUT_LINK` in index.html holds the clean link; empty means the guide says to ask for it. An iCloud link can be checked without a phone: `GET https://www.icloud.com/shortcuts/api/records/<id>` gives `fields.shortcut.value.downloadURL`, an unsigned binary plist (plistlib).
