@@ -199,7 +199,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <span class="hint">.pdf, .docx, .pptx, .txt, .md, .csv, .srt, .png, .jpg, .webp, .heic. Paste a screenshot with Ctrl+V.</span>
         <input id="fileInput" type="file" multiple hidden>
       </div>
-      <label for="pdfMode">How to read PDFs</label>
+      <label for="pdfMode">PDF reading</label>
       <select id="pdfMode">
         <option value="auto">Automatic (text when possible, image for scanned pages)</option>
         <option value="images">Always as page images (best for worksheets, furigana, diagrams)</option>
@@ -278,8 +278,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <option value="codex">ChatGPT subscription (via Codex CLI)</option>
         <option value="claude">Claude subscription (via Claude Code)</option>
       </select>
-      <div class="provider-detail"><span id="providerStatus" class="hint" style="margin:0"></span><button class="link" id="providerRecheck" style="font-size:13px">Check again</button></div>
-      <div class="hint" id="providerGuideBox" hidden>Not set up yet? <button class="link" id="providerGuide" style="font-size:12.5px">Open the step-by-step setup guide for this AI</button></div>
+      <div class="provider-detail"><span id="providerStatus" class="hint" style="margin:0"></span><button class="link" id="providerRecheck" style="font-size:13px">Check again</button><button class="link" id="providerGuide" style="font-size:13px" hidden></button></div>
       <div style="margin-top:14px"><button id="generate" class="primary big">Generate cards</button></div>
       <div id="genStatus"></div>
     </section>
@@ -335,7 +334,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     <div class="hint">Your anime list must be public. No MAL API key needed.</div>
     <label for="nadeKey">Nadeshiko API key</label>
     <input id="nadeKey" type="password" placeholder="Paste your key" autocomplete="off">
-    <div class="hint" id="nadeKeyHint"></div>
+    <div class="hint" id="nadeKeyHint"><button class="link" data-guide="guide-nadeshiko">Nadeshiko setup guide</button></div>
     <div style="margin-top:14px"><button id="nadeSync" class="primary big">Update from MyAnimeList</button></div>
     <div id="nadeStatus"></div>
   </section>
@@ -496,30 +495,26 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <h3 style="font-size:14px;margin:18px 0 4px">OpenAI API</h3>
   <label for="apiKey">API key</label>
   <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
-  <div class="hint" id="keyHint"></div>
+  <div class="hint"><button class="link" data-guide="guide-openai">OpenAI setup guide</button></div>
   <label for="openaiModel">Model</label>
-  <input id="openaiModel" type="text" list="openaiModels">
-  <datalist id="openaiModels">
-    <option value="gpt-5.4-mini"><option value="gpt-5.4-nano"><option value="gpt-5-mini"><option value="gpt-5-nano">
-  </datalist>
-  <div class="hint"><code>gpt-5.4-mini</code> is a good balance. <code>gpt-5.4-nano</code> and <code>gpt-5-nano</code> are cheaper but read photos and Japanese less reliably.</div>
+  <select id="openaiModel">
+    <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+    <option value="gpt-5.4-nano">gpt-5.4-nano</option>
+    <option value="gpt-5-mini">gpt-5-mini</option>
+    <option value="gpt-5-nano">gpt-5-nano</option>
+  </select>
 
   <h3 style="font-size:14px;margin:22px 0 4px">ChatGPT subscription (Codex CLI)</h3>
-  <div class="hint">One-time setup in Command Prompt (needs Node.js):<br>
-    <code>npm install -g @openai/codex</code><br>
-    then <code>codex login</code> and choose <b>Sign in with ChatGPT</b>. Then click "Check again" next to the AI dropdown. Step by step: see the <b>Setup guide</b> tab.</div>
+  <div class="hint"><button class="link" data-guide="guide-codex">ChatGPT setup guide</button></div>
   <label for="codexModel">Model (optional)</label>
   <input id="codexModel" type="text" placeholder="leave blank for Codex's default">
 
   <h3 style="font-size:14px;margin:22px 0 4px">Claude subscription (Claude Code)</h3>
-  <div class="hint">One-time setup in PowerShell:<br>
-    <code>irm https://claude.ai/install.ps1 | iex</code><br>
-    then run <code>claude</code> once and log in with your Claude account. Then click "Check again" next to the AI dropdown.</div>
+  <div class="hint"><button class="link" data-guide="guide-claude">Claude setup guide</button></div>
   <label for="claudeModel">Model (optional)</label>
   <input id="claudeModel" type="text" placeholder="e.g. sonnet or haiku, blank for default">
 
   <div style="margin-top:20px"><button id="saveSettings" class="primary">Save AI settings</button> <span id="settingsSaved" class="saved"></span></div>
-  <p class="hint" style="margin-top:18px">Everything is saved in <code>settings.json</code> next to the app, on this computer only.</p>
 </aside>
 
 <!-- Reset dialog -->
@@ -575,14 +570,17 @@ function fillForm(s){
   $("#pdfMode").value = s.pdf_mode;
   $("#manualFields").value = s.manual_fields;
   $("#modelText").value = s.model;
-  $("#openaiModel").value = s.openai_model;
+  const om = $("#openaiModel");
+  if (s.openai_model && ![...om.options].some(o => o.value === s.openai_model))
+    om.add(new Option(s.openai_model, s.openai_model));  // keep a model typed in an older version
+  om.value = s.openai_model || "gpt-5.4-mini";
   $("#codexModel").value = s.codex_model;
   $("#claudeModel").value = s.claude_model;
   $("#malProfile").value = s.mal_profile;
   $("#mediaKinds").querySelectorAll("input").forEach(i => i.checked = (s.media_categories || []).includes(i.value));
   $("#mediaFallback").checked = !!s.media_fallback;
   showNadeKeyHint(s);
-  $("#keyHint").textContent = s.openai_key_hint ? `Saved key ending ${s.openai_key_hint}. Leave blank to keep it.` : "No key saved yet.";
+  showKey("#apiKey", s.openai_key_hint);
   applyTheme(s.theme || "system");
 }
 async function loadSettings(){ state.settings = await api("/api/settings"); fillForm(state.settings); }
@@ -647,15 +645,26 @@ addEventListener("pagehide", () => {
   if (saveTimer) fetch("/api/settings", {method:"POST", keepalive:true, headers:{"Content-Type":"application/json"}, body:JSON.stringify(formValues())});
 });
 
+// Saved keys never come back to the page, so a saved key is shown as this stand-in (dots in a
+// password field). Sending it back means "keep the saved key".
+const KEY_MASK = "saved-key-kept";
+function showKey(sel, saved){ $(sel).value = saved ? KEY_MASK : ""; }
+function keyValue(sel){ const v = $(sel).value.trim(); return v === KEY_MASK ? "" : v; }
+["#apiKey", "#nadeKey"].forEach(sel => {
+  $(sel).addEventListener("focus", e => { if (e.target.value === KEY_MASK) e.target.select(); });
+  $(sel).addEventListener("input", e => {  // typing after the stand-in instead of over it
+    if (e.target.value.startsWith(KEY_MASK) && e.target.value !== KEY_MASK) e.target.value = e.target.value.slice(KEY_MASK.length);
+  });
+});
+
 $("#openSettings").onclick = () => $("#drawer").classList.add("open");
 $("#closeSettings").onclick = () => $("#drawer").classList.remove("open");
 $("#saveSettings").onclick = async () => {
   state.settings = await post("/api/settings", {
-    openai_api_key:$("#apiKey").value.trim(), openai_model:$("#openaiModel").value.trim(),
+    openai_api_key:keyValue("#apiKey"), openai_model:$("#openaiModel").value,
     codex_model:$("#codexModel").value.trim(), claude_model:$("#claudeModel").value.trim()
   });
-  $("#apiKey").value = "";
-  $("#keyHint").textContent = state.settings.openai_key_hint ? `Saved key ending ${state.settings.openai_key_hint}. Leave blank to keep it.` : "No key saved yet.";
+  showKey("#apiKey", state.settings.openai_key_hint);
   flash("#settingsSaved", "Saved");
   checkProvider();
 };
@@ -678,14 +687,16 @@ $("#resetGo").onclick = async () => {
 async function checkProvider(){
   const p = $("#provider").value, el = $("#providerStatus");
   el.textContent = "Checking..."; el.style.color = "";
-  $("#providerGuideBox").hidden = true;
+  const guide = $("#providerGuide");
+  guide.hidden = true;
+  guide.textContent = {openai: "OpenAI", codex: "ChatGPT", claude: "Claude"}[p] + " setup guide";
   try {
     const r = await api(`/api/provider/check?provider=${p}`);
     if ($("#provider").value !== p) return; // user switched again meanwhile
     el.textContent = (r.ok ? "✓ " : "⚠ ") + r.detail;
     el.style.color = r.ok ? "var(--accent)" : "var(--warn)";
-    $("#providerGuideBox").hidden = r.ok;
-  } catch(e){ el.textContent = e.message; $("#providerGuideBox").hidden = false; }
+    guide.hidden = r.ok;
+  } catch(e){ el.textContent = e.message; guide.hidden = false; }
 }
 $("#provider").addEventListener("change", checkProvider);
 $("#providerRecheck").onclick = checkProvider;
@@ -776,7 +787,7 @@ function updateHints(){
   $("#directionHint").textContent = hint;
   $("#deliveryHint").innerHTML = $("#delivery").value === "ankiconnect"
     ? (state.anki.ok ? "Anki is open and AnkiConnect is working." :
-       'Anki isn\'t connected. <button class="link" data-guide="guide-anki">How to connect Anki</button>')
+       'Anki isn\'t connected. <button class="link" data-guide="guide-anki">Anki setup guide</button>')
     : "You'll get a .txt file. In Anki use <b>File > Import</b>; the deck, note type and tags are pre-filled. Set <b>Existing notes</b> to <b>Preserve</b> so duplicates are skipped.";
   renderSendButton();
 }
@@ -1111,7 +1122,7 @@ $("#providerGuide").onclick = () => { showTab("guideTab"); jumpTo("guide-" + $("
 // links into the guide inside text that is re-rendered (hints), so delegated
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-guide]");
-  if (b) { showTab("guideTab"); jumpTo(b.dataset.guide); }
+  if (b) { $("#drawer").classList.remove("open"); showTab("guideTab"); jumpTo(b.dataset.guide); }
 });
 document.querySelectorAll("#guideTab [data-jump]").forEach(b => b.onclick = () => jumpTo(b.dataset.jump));
 async function createNotetype(kind){
@@ -1149,11 +1160,11 @@ document.querySelectorAll("#guideTab .cmd button").forEach(b => b.onclick = asyn
 
 // ---------- Nadeshiko ----------
 function showNadeKeyHint(s){
-  $("#nadeKeyHint").textContent = s.nadeshiko_key_hint ? `Saved key ending ${s.nadeshiko_key_hint}. Leave blank to keep it.` : "Get one at nadeshiko.co/user/developer. Saved on this computer only.";
+  showKey("#nadeKey", s.nadeshiko_key_hint);
+  $("#nadeKeyHint").hidden = !!s.nadeshiko_key_hint;
 }
 async function saveNadeSettings(){
-  state.settings = await post("/api/settings", {nadeshiko_api_key:$("#nadeKey").value.trim(), mal_profile:$("#malProfile").value.trim()});
-  $("#nadeKey").value = "";
+  state.settings = await post("/api/settings", {nadeshiko_api_key:keyValue("#nadeKey"), mal_profile:$("#malProfile").value.trim()});
   showNadeKeyHint(state.settings);
   loadMediaInfo();
 }
