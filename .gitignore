@@ -29,3 +29,6 @@ modelFieldNames
 modelStyling
 modelTemplates
 notesInfo
+
+# Local pointer so Claude Code loads AGENTS.md (repos keep AGENTS.md only)
+CLAUDE.md

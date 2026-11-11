@@ -1,4 +1,4 @@
-# Anki Card Maker - project notes for Claude
+# Anki Card Maker - project notes for AI agents
 
 A small local web app that turns study material (PDFs, photos, Word, PowerPoint, text) into Anki flashcards with an AI, then sends them into Anki without duplicates. Built for one user on Windows, mostly for Japanese kanji/vocab study (e.g. Japanese 3rd-grade kanji worksheets with vertical text and furigana).
 
