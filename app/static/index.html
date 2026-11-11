@@ -258,6 +258,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <input id="manualFields" type="text" placeholder="Front, Back">
       </div>
       <div id="fieldsInfo" class="hint"></div>
+      <div id="mediaFieldWarn"></div>
 
       <label for="direction">Card direction</label>
       <select id="direction">
@@ -364,7 +365,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     <div class="gnav">
       <button class="small" data-jump="guide-ankiweb">Anki account</button>
       <button class="small" data-jump="guide-anki">Connect Anki</button>
-      <button class="small" data-jump="guide-notetype">Card type</button>
+      <button class="small" data-jump="guide-notetype">Note type</button>
       <button class="small" data-jump="guide-openai">OpenAI API</button>
       <button class="small" data-jump="guide-codex">ChatGPT subscription</button>
       <button class="small" data-jump="guide-claude">Claude subscription</button>
@@ -402,15 +403,15 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="guide-notetype">
-    <h2>Card type</h2>
-    <p>A card type (Anki calls it a "note type") decides which fields a card has and how it looks. The ready-made ones have three fields: <b>Front</b> (the word with its reading), <b>Back</b> (the meaning) and <b>Media</b> (example sentence with image and audio). Each makes two cards per word: word to meaning, and meaning to word.</p>
+    <h2>Note type</h2>
+    <p>A note type decides which fields a card has and how it looks. The ready-made ones have three fields: <b>Front</b> (the word with its reading), <b>Back</b> (the meaning) and <b>Media</b> (example sentence with image and audio). Each makes two cards per word: word to meaning, and meaning to word.</p>
     <h3>Easy way: one click</h3>
     <ol>
       <li>Make sure Anki is open and the top of this app says <b>Anki connected</b>.</li>
       <li>Click the one you want:
         <div class="row" style="margin:8px 0;flex-wrap:wrap">
-          <button id="ntJapanese" class="primary" style="flex:0 0 auto">Create the Japanese card type</button>
-          <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin card type</button>
+          <button id="ntJapanese" class="primary" style="flex:0 0 auto">Create the Japanese note type</button>
+          <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin note type</button>
         </div>
         <div id="ntStatus"></div>
         Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji), and its Media field stays empty because Nadeshiko is Japanese only.</li>
@@ -478,7 +479,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <section class="card" id="guide-nadeshiko">
     <h2>Nadeshiko</h2>
     <ol>
-      <li>Make sure your card type has a field for the media, for example one called <b>Media</b>. The <button class="link" data-jump="guide-notetype">ready-made card types</button> have it.</li>
+      <li>Make sure your note type has a field for the media, for example one called <b>Media</b>. The <button class="link" data-jump="guide-notetype">ready-made note types</button> have it.</li>
       <li>Make a free account at <code>nadeshiko.co</code>, then open <code>nadeshiko.co/user/developer</code> and create an API key. Copy it.</li>
       <li>In this app open the <b>Nadeshiko</b> tab and paste the key into <b>Nadeshiko API key</b>.</li>
       <li>Optional: paste your MyAnimeList profile link (your list must be public) and click <b>Update from MyAnimeList</b>. Then sentences come from anime you know first.</li>
@@ -757,6 +758,7 @@ function useManualFields(){
   state.fields = $("#manualFields").value.split(",").map(s => s.trim()).filter(Boolean);
   if (state.fields.length < 2) state.fields = ["Front","Back"];
   $("#fieldsInfo").textContent = "";
+  showMediaFieldWarning();
 }
 async function loadFields(){
   try {
@@ -766,6 +768,12 @@ async function loadFields(){
     if (state.templates.length) info += `<br>Makes ${state.templates.length} card${state.templates.length>1?"s":""} per note: ${state.templates.map(esc).join(", ")}`;
     $("#fieldsInfo").innerHTML = info;
   } catch(e){ $("#fieldsInfo").textContent = e.message; }
+  showMediaFieldWarning();
+}
+function showMediaFieldWarning(){
+  // Without Anki the field list is just what was typed, and media needs Anki anyway.
+  $("#mediaFieldWarn").innerHTML = !state.anki.ok || pickMediaField(state.fields) ? "" :
+    '<div class="notice warn">This note type has no Media field, so media can\'t be attached. <button class="link" data-guide="guide-notetype">Note type setup guide</button></div>';
 }
 $("#modelSel").addEventListener("change", async () => { await loadFields(); remember(); updateHints(); targetChanged(); });
 $("#manualFields").addEventListener("input", useManualFields);
@@ -986,7 +994,7 @@ function renderMediaBar(){
   btn.disabled = !n || !target || !info.has_key || state.mediaRunning;
   let msg;
   if (!info.has_key) msg = 'Add your Nadeshiko API key in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button> first.';
-  else if (!target) msg = 'This note type has no "Media" field. Pick the field to fill under Options.';
+  else if (!target) msg = 'This note type has no Media field, so media can\'t be attached. <button class="link" data-guide="guide-notetype">Note type setup guide</button>';
   else {
     msg = info.my_anime ? ""
       : 'No anime are ticked in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button>, so all titles are searched.';

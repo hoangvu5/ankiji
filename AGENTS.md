@@ -133,7 +133,7 @@ Install notes for the user (Windows):
 
 ## Setup guide tab
 
-Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnect, card type (one-click or by hand with template copy boxes, and a note that an AI can customize templates), OpenAI API, ChatGPT (Node.js + `npm install -g @openai/codex` in **Command Prompt**, avoiding PowerShell's npm.ps1 execution-policy block), Claude (`irm https://claude.ai/install.ps1 | iex`, no Git needed), Nadeshiko. Copy buttons on commands. Section 4 shows "<AI> setup guide" next to Check again when the AI is not ready, which jumps to the selected provider's section.
+Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnect, note type (one-click or by hand with template copy boxes, and a note that an AI can customize templates), OpenAI API, ChatGPT (Node.js + `npm install -g @openai/codex` in **Command Prompt**, avoiding PowerShell's npm.ps1 execution-policy block), Claude (`irm https://claude.ai/install.ps1 | iex`, no Git needed), Nadeshiko. Copy buttons on commands. Section 4 shows "<AI> setup guide" next to Check again when the AI is not ready, which jumps to the selected provider's section.
 
 ## API routes
 

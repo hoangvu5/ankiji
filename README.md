@@ -34,8 +34,8 @@ The app has a **Setup guide** tab with every step, including buttons that copy e
 
 Keep Anki open whenever you use the app.
 
-### Set up the card type
-In the **Setup guide** tab, under **Set up the card type**, click **Create the Japanese card type** or **Create the Mandarin card type** (Anki must be open). This adds a note type with the fields **Front**, **Back** and **Media**, its card designs and styling. Then choose it as **Note type** on the Create cards tab.
+### Set up the note type
+In the **Setup guide** tab, under **Note type**, click **Create the Japanese note type** or **Create the Mandarin note type** (Anki must be open). This adds a note type with the fields **Front**, **Back** and **Media**, its card designs and styling. Then choose it as **Note type** on the Create cards tab.
 
 - **Japanese Card Format**: card 1 shows the word (tap it to see the reading), card 2 shows the meaning and you handwrite the kanji on screen.
 - **Mandarin Card Format**: card 1 the same with pinyin, card 2 shows the meaning and you recall the characters.
