@@ -52,6 +52,8 @@ Tests are a welcome contribution.
 
 `build.bat` makes the .exe and the zip locally. On every push to `main`, GitHub Actions runs the same script and replaces the **latest** release with the new `Ankiji.zip`.
 
+Dependabot opens update PRs for the Python packages (weekly, `requirements.txt` and `requirements-build.txt`) and for the GitHub Actions (monthly). They are not built automatically, so check out the branch, run `build.bat` and try the app before merging.
+
 ## Pull requests
 
 - One topic per PR, on its own branch.

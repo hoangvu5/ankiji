@@ -1,0 +1,26 @@
+# Dependabot opens PRs when a pinned dependency has a new version.
+# Minor and patch bumps are grouped into one PR per ecosystem to keep the PR list short;
+# major versions still get their own PR, since those are the ones that can break things.
+version: 2
+updates:
+  - package-ecosystem: "pip"            # requirements.txt and requirements-build.txt
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build"
+    groups:
+      python-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions" # .github/workflows/release.yml
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns: ["*"]
