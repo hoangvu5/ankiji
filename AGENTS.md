@@ -92,7 +92,7 @@ Install notes for the user (Windows):
 ## Settings (settings.json)
 
 - Everything autosaves (debounced) and reloads next session: provider, delivery, deck, note type, manual fields, direction, duplicate scope, PDF mode, card prompts (`prompts` + `active_prompt`, saved as you type), theme, model names, OpenAI key. "Extra instructions for this batch" is intentionally NOT saved.
-- The API key is never sent back to the browser; only `openai_key_hint` (last 4 chars). Blank key field on save = keep existing key.
+- API keys (OpenAI, Nadeshiko) are never sent back to the browser; only `*_key_hint` (last 4 chars) tells the page one is saved. A saved key shows as dots: the field holds the stand-in `KEY_MASK`, and sending that (or blank) back means keep the saved key.
 - **Reset settings** button opens a `<dialog>` with groups (`RESET_GROUPS` in server.py): `anki`, `ai`, `prompt`, `key`, `display`. `POST /api/settings/reset {groups:[...]}` restores DEFAULTS for those keys.
 
 ## UI
@@ -122,7 +122,7 @@ Install notes for the user (Windows):
 
 ## Named prompts
 
-- Settings `prompts: [{name, text}]` + `active_prompt` replace the old single `default_prompt`. Defaults come from `app/prompts.py`. `load_settings` migrates: an old custom `default_prompt` that isn't the placeholder or the built-in Japanese text is kept as "My prompt". Reset group `prompt` restores the two built-ins.
+- Settings `prompts: [{name, text}]` + `active_prompt`; defaults ("Japanese", "Mandarin") come from `app/prompts.py`. Reset group `prompt` restores the two built-ins. (Migrations from the old single `default_prompt` and the long prompt names were removed once the only old settings file had been converted.)
 - Section 2 has a dropdown plus New (copy of current) / Rename / Delete (uses `prompt()` / `confirm()`). Generation uses the textarea, which shows the active prompt.
 
 ## Ready-made note types

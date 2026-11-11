@@ -3,18 +3,16 @@ import json
 import os
 import threading
 import uuid
-from typing import List, Optional
+from typing import List
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from . import anki, extract, llm, media, nadeshiko, notetypes
-from .prompts import DEFAULT_PROMPTS, JAPANESE, OLD_NAMES
+from .prompts import DEFAULT_PROMPTS
 from .paths import STATIC_DIR, data
 
 SETTINGS_PATH = data("settings.json")
-
-OLD_PLACEHOLDER = "(Placeholder - replace this with your own default prompt."
 
 DEFAULTS = {
     "provider": "openai",
@@ -65,20 +63,6 @@ def load_settings():
         except Exception:
             pass
     s.update(saved)
-    if "prompts" not in saved:  # settings from before named prompts: keep a custom single prompt
-        old = (saved.get("default_prompt") or "").strip()
-        if old and not old.startswith(OLD_PLACEHOLDER) and old != JAPANESE.strip():
-            s["prompts"].append({"name": "My prompt", "text": old})
-            s["active_prompt"] = "My prompt"
-    s.pop("default_prompt", None)
-    names = {p["name"] for p in s["prompts"]}
-    for p in s["prompts"]:
-        new = OLD_NAMES.get(p["name"])
-        if new and new not in names:
-            if s["active_prompt"] == p["name"]:
-                s["active_prompt"] = new
-            p["name"] = new
-            names.add(new)
     if not s["prompts"]:
         s["prompts"] = copy.deepcopy(DEFAULT_PROMPTS)
     if s["active_prompt"] not in [p["name"] for p in s["prompts"]]:

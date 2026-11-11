@@ -8,6 +8,3 @@ DEFAULT_PROMPTS = [
     {"name": "Japanese", "text": JAPANESE},
     {"name": "Mandarin", "text": MANDARIN},
 ]
-
-# Earlier built-in names, renamed in settings saved before the change.
-OLD_NAMES = {"Japanese (JLPT, with Vietnamese)": "Japanese", "Mandarin (HSK 1-2, Vietnamese)": "Mandarin"}
