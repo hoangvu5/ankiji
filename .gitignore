@@ -1,0 +1,31 @@
+# Personal data: API keys, MyAnimeList username, anime cache. Never commit.
+settings.json
+settings*.json
+nadeshiko_cache.json
+nadeshiko_cache.json.tmp
+*.tmp
+.env
+.env.*
+
+# App window profile (cookies, history) and logs
+browser-profile/
+app-log.txt
+*.log
+.write_test
+
+# Python and build output
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+
+# Local tool config
+.claude/
+
+# Stray empty output files from an old PowerShell command
+findNotes
+modelFieldNames
+modelStyling
+modelTemplates
+notesInfo

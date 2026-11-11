@@ -1,0 +1,40 @@
+# Every push to main builds the Windows app and replaces the "latest" release with a fresh
+# AnkiCardMaker.zip. Download link (for people with access to the repo):
+#   https://github.com/<you>/<repo>/releases/latest/download/AnkiCardMaker.zip
+name: Build app zip
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write      # needed to publish the release
+
+concurrency:
+  group: release
+  cancel-in-progress: true   # two quick pushes: only the newest one builds
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Build exe and zip
+        shell: cmd
+        run: build.bat
+
+      - name: Publish as the "latest" release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = "Built automatically from commit ${{ github.sha }} on $(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC.`n`nDownload AnkiCardMaker.zip below, extract it, and double-click Anki Card Maker.exe."
+          gh release delete latest --cleanup-tag --yes 2>$null
+          $global:LASTEXITCODE = 0
+          gh release create latest dist/AnkiCardMaker.zip --title "Anki Card Maker (latest)" --notes $notes --latest
