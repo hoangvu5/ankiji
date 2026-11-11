@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anki Card Maker</title>
+<title>Ankiji</title>
+<link rel="icon" type="image/png" href="/icon.png">
 <script>
   // apply the saved theme before the page paints, so there's no flash
   try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
@@ -134,7 +135,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 .mediabar .opts{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-top:4px}
 @media (max-width:700px){.mediabar .opts{grid-template-columns:1fr}}
 .mediabar .kinds{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
-.mediabar .kinds label,.mediabar .inline{display:flex;gap:6px;align-items:center;font-weight:500;margin:4px 0}
+.mediabar .kinds label{display:flex;gap:6px;align-items:center;font-weight:500;margin:4px 0}
 .mcell{display:flex;gap:10px;min-width:330px;align-items:flex-start}
 .mcell img{width:140px;border-radius:6px;border:1px solid var(--line);display:block;background:#000}
 .mcell .ja{font-size:15px}
@@ -155,6 +156,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 #guideTab .cmd code{flex:1;padding:8px 10px;font-size:13px;overflow-x:auto;white-space:nowrap}
 #guideTab table td,#guideTab table th{padding:8px 10px}
 .gnav{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+#guideTab p{margin:6px 0 10px}
+.totop{position:fixed;right:24px;bottom:24px;z-index:6;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 14px;box-shadow:0 4px 14px var(--shadow)}
+.totop[hidden]{display:none}
 .tdetails{margin:10px 0;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .tdetails summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .tbox{display:flex;gap:8px;align-items:flex-start}
@@ -164,9 +168,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 </head>
 <body>
 <header>
-  <h1>Anki Card Maker</h1>
+  <h1>Ankiji</h1>
   <nav class="tabs" role="tablist" aria-label="Pages">
-    <button type="button" role="tab" data-tab="cardsTab">Make cards</button>
+    <button type="button" role="tab" data-tab="cardsTab">Create cards</button>
     <button type="button" role="tab" data-tab="nadeshikoTab">Nadeshiko</button>
     <button type="button" role="tab" data-tab="guideTab">Setup guide</button>
   </nav>
@@ -196,10 +200,10 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <h2><span class="step">1</span> Material</h2>
       <div id="drop" class="drop">
         <b>Drop files here</b> or click to choose<br>
-        <span class="hint">PDF, photos/screenshots, Word, PowerPoint, text. You can also paste a screenshot with Ctrl+V.</span>
+        <span class="hint">.pdf, .docx, .pptx, .txt, .md, .csv, .srt, .png, .jpg, .webp, .heic. Paste a screenshot with Ctrl+V.</span>
         <input id="fileInput" type="file" multiple hidden>
       </div>
-      <label for="pdfMode">How to read PDFs</label>
+      <label for="pdfMode">PDF reading</label>
       <select id="pdfMode">
         <option value="auto">Automatic (text when possible, image for scanned pages)</option>
         <option value="images">Always as page images (best for worksheets, furigana, diagrams)</option>
@@ -207,13 +211,13 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       </select>
       <div id="extractStatus"></div>
       <div id="thumbs" class="thumbs"></div>
-      <label for="material">Text (extracted text appears here; you can edit it or paste more)</label>
+      <label for="material">Text</label>
       <textarea id="material" rows="9" placeholder="Paste notes here, or drop files above."></textarea>
       <div style="margin-top:8px"><button id="clearMaterial">Clear all material</button></div>
     </section>
 
     <section class="card">
-      <h2><span class="step">2</span> How the cards should look</h2>
+      <h2><span class="step">2</span> Prompt</h2>
       <div class="row" style="align-items:baseline">
         <label for="promptSel" style="flex:1">Card prompt</label>
         <span id="promptSaved" class="saved" style="flex:0 0 auto"></span>
@@ -225,19 +229,18 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <button id="promptDelete" class="small">Delete</button>
       </div>
       <textarea id="prompt" rows="8" aria-label="Prompt text" style="margin-top:8px"></textarea>
-      <div class="hint">Pick a prompt above, or make your own with <b>New</b>. Changes save automatically.</div>
-      <label for="extra">Extra instructions for this batch only (optional, not saved)</label>
-      <textarea id="extra" rows="2" placeholder="e.g. only the kanji on page 1, add 3 example words each"></textarea>
+      <label for="extra">Extra instructions for this batch only (optional)</label>
+      <textarea id="extra" rows="2"></textarea>
     </section>
   </div>
 
   <!-- RIGHT: target + generate -->
   <div>
     <section class="card">
-      <h2><span class="step">3</span> Where the cards go</h2>
+      <h2><span class="step">3</span> Destination</h2>
       <label for="delivery">Send cards by</label>
       <select id="delivery">
-        <option value="ankiconnect">Straight into Anki (one click, needs Anki open + AnkiConnect)</option>
+        <option value="ankiconnect">Straight into Anki</option>
         <option value="tsv">Download an import file (File > Import in Anki)</option>
       </select>
       <div id="deliveryHint" class="hint"></div>
@@ -255,10 +258,11 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <input id="manualFields" type="text" placeholder="Front, Back">
       </div>
       <div id="fieldsInfo" class="hint"></div>
+      <div id="mediaFieldWarn"></div>
 
       <label for="direction">Card direction</label>
       <select id="direction">
-        <option value="forward">As generated (use the note type's own cards)</option>
+        <option value="forward">Use the note type's own cards</option>
         <option value="backward">Swap the first two fields</option>
         <option value="both">Add reverse cards (Basic only)</option>
       </select>
@@ -272,15 +276,14 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     </section>
 
     <section class="card">
-      <h2><span class="step">4</span> Make the cards</h2>
+      <h2><span class="step">4</span> Generation</h2>
       <label for="provider">AI</label>
       <select id="provider">
         <option value="openai">OpenAI API (pay per use)</option>
         <option value="codex">ChatGPT subscription (via Codex CLI)</option>
         <option value="claude">Claude subscription (via Claude Code)</option>
       </select>
-      <div class="provider-detail"><span id="providerStatus" class="hint" style="margin:0"></span><button class="link" id="providerRecheck" style="font-size:13px">Check again</button></div>
-      <div class="hint">Not set up yet? <button class="link" id="providerGuide" style="font-size:12.5px">Open the step-by-step setup guide for this AI</button></div>
+      <div class="provider-detail"><span id="providerStatus" class="hint" style="margin:0"></span><button class="link" id="providerRecheck" style="font-size:13px">Check again</button><button class="link" id="providerGuide" style="font-size:13px" hidden></button></div>
       <div style="margin-top:14px"><button id="generate" class="primary big">Generate cards</button></div>
       <div id="genStatus"></div>
     </section>
@@ -300,7 +303,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </div>
   <div class="mediabar" id="mediaBar">
     <div class="head">
-      <b>Example sentence from Nadeshiko (image, audio, Japanese and English subtitles)</b>
+      <b>Media from Nadeshiko</b>
       <button id="mediaFill" class="primary">Fill media</button>
     </div>
     <div id="mediaInfo" class="hint"></div>
@@ -317,8 +320,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <label><input type="checkbox" value="YOUTUBE"> YouTube</label>
         <label><input type="checkbox" value="AUDIOBOOK"> Audiobook</label>
       </div>
-      <label class="inline"><input type="checkbox" id="mediaFallback"> If the word isn't in my anime, use other titles</label>
-      <div class="hint">"My anime" are the ones ticked in the Nadeshiko tab. Each card uses 1 to 4 Nadeshiko searches (5,000 a month).</div>
+      <div style="margin:6px 0;font-size:14px;font-weight:500"><label for="mediaFallback" style="display:inline;margin:0;font-weight:500"><input type="checkbox" id="mediaFallback" style="vertical-align:-2px;margin:0 6px 0 0">If the word isn't in</label> <button class="link" data-goto="nadeshikoTab">my anime</button>, use other titles</div>
     </details>
     <div id="mediaStatus"></div>
   </div>
@@ -330,13 +332,12 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 <main id="nadeshikoTab" hidden>
   <section class="card">
     <h2>Find my anime on Nadeshiko</h2>
-    <div class="hint" style="margin:0">Reads Watching and Completed from MyAnimeList. Results are saved on this computer, so Nadeshiko is only searched for anime that are new on your list.</div>
     <label for="malProfile">MyAnimeList profile link</label>
     <input id="malProfile" type="text" placeholder="https://myanimelist.net/profile/YourName" autocomplete="off">
-    <div class="hint">Your anime list must be public. No MAL API key needed.</div>
+    <div class="hint">Your anime list must be public. Reads Watching and Completed from MyAnimeList.</div>
     <label for="nadeKey">Nadeshiko API key</label>
     <input id="nadeKey" type="password" placeholder="Paste your key" autocomplete="off">
-    <div class="hint" id="nadeKeyHint"></div>
+    <div class="hint" id="nadeKeyHint"><button class="link" data-guide="guide-nadeshiko">Nadeshiko setup guide</button></div>
     <div style="margin-top:14px"><button id="nadeSync" class="primary big">Update from MyAnimeList</button></div>
     <div id="nadeStatus"></div>
   </section>
@@ -351,47 +352,47 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="nadeList" hidden>
-    <h2>Your anime</h2>
+    <h2>Anime</h2>
     <div class="toolbar"><span class="count" id="nadeCount"></span></div>
     <div class="tablewrap"><table id="nadeTable"></table></div>
   </section>
 </main>
 
 <main id="guideTab" hidden>
-  <section class="card">
+  <section class="card" id="guide-top">
     <h2>Setup guide</h2>
-    <div class="hint" style="margin:0">Everything you need to do once, step by step. You only need <b>one</b> of the three AI options.</div>
+    <p>Everything you need to do once, step by step. You only need <b>one</b> of the three AI options.</p>
     <div class="gnav">
       <button class="small" data-jump="guide-ankiweb">Anki account</button>
       <button class="small" data-jump="guide-anki">Connect Anki</button>
-      <button class="small" data-jump="guide-notetype">Card type</button>
+      <button class="small" data-jump="guide-notetype">Note type</button>
       <button class="small" data-jump="guide-openai">OpenAI API</button>
       <button class="small" data-jump="guide-codex">ChatGPT subscription</button>
       <button class="small" data-jump="guide-claude">Claude subscription</button>
-      <button class="small" data-jump="guide-nadeshiko">Nadeshiko (media)</button>
+      <button class="small" data-jump="guide-nadeshiko">Nadeshiko</button>
+      <button class="small" data-jump="guide-iphone">iPhone clips</button>
     </div>
     <h3>Which AI should I pick?</h3>
     <div class="tablewrap"><table>
       <tr><th>Option</th><th>Good if</th><th>Cost</th><th>Setup</th></tr>
       <tr><td><b>OpenAI API</b></td><td>You want the easiest setup</td><td>Pay per use, usually a few cents per batch</td><td>Easy: copy one key</td></tr>
       <tr><td><b>ChatGPT subscription</b></td><td>You already pay for ChatGPT Plus or higher</td><td>No extra cost</td><td>Medium: install 2 programs</td></tr>
-      <tr><td><b>Claude subscription</b></td><td>You already pay for Claude Pro or Max</td><td>No extra cost</td><td>Medium: install 2 programs</td></tr>
+      <tr><td><b>Claude subscription</b></td><td>You already pay for Claude Pro or Max</td><td>No extra cost</td><td>Medium: install 1 program</td></tr>
     </table></div>
   </section>
 
   <section class="card" id="guide-ankiweb">
-    <h2>Make a free Anki account (to study on your phone too)</h2>
+    <h2>Anki account</h2>
     <ol>
       <li>Go to <code>ankiweb.net</code> and click <b>Sign Up</b>. Enter your email and a password, then confirm the email they send you.</li>
       <li>Install Anki on your computer from <code>apps.ankiweb.net</code> and open it.</li>
       <li>Click <b>Sync</b> (top right of the main Anki window) and log in with the same email and password.</li>
       <li>On your phone install <b>AnkiDroid</b> (Android, free) or <b>AnkiMobile</b> (iPhone), log in with the same account and tap sync.</li>
     </ol>
-    <div class="hint">After adding cards from this app, click <b>Sync</b> in Anki on the computer, then sync on the phone, and the new cards appear there.</div>
   </section>
 
   <section class="card" id="guide-anki">
-    <h2>Connect Anki (do this first)</h2>
+    <h2>Connect Anki</h2>
     <ol>
       <li>Install <b>Anki</b> from <code>apps.ankiweb.net</code> if you don't have it, and open it.</li>
       <li>In Anki click <b>Tools</b>, then <b>Add-ons</b>, then <b>Get Add-ons...</b></li>
@@ -400,24 +401,23 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Close Anki and open it again.</li>
       <li>Come back here and click <b>Recheck</b> at the top. It should say <b>Anki connected</b> in green.</li>
     </ol>
-    <div class="hint">Keep Anki open whenever you use this app.</div>
   </section>
 
   <section class="card" id="guide-notetype">
-    <h2>Set up the card type (fields, look and style)</h2>
-    <div class="hint" style="margin:0">A "note type" decides which fields a card has and how it looks. These ready-made ones have three fields: <b>Front</b> (the word with its reading), <b>Back</b> (the meaning) and <b>Media</b> (example sentence with image and audio), and make two cards per word: word to meaning, and meaning to word.</div>
+    <h2>Note type</h2>
+    <p>A note type decides which fields a card has and how it looks. The ready-made ones have three fields: <b>Front</b> (the word with its reading), <b>Back</b> (the meaning) and <b>Media</b> (example sentence with image and audio). Each makes two cards per word: word to meaning, and meaning to word.</p>
     <h3>Easy way: one click</h3>
     <ol>
       <li>Make sure Anki is open and the top of this app says <b>Anki connected</b>.</li>
       <li>Click the one you want:
         <div class="row" style="margin:8px 0;flex-wrap:wrap">
-          <button id="ntJapanese" class="primary" style="flex:0 0 auto">Create the Japanese card type</button>
-          <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin card type</button>
+          <button id="ntJapanese" class="primary" style="flex:0 0 auto">Create the Japanese note type</button>
+          <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin note type</button>
         </div>
-        <div id="ntStatus"></div></li>
-      <li>On the <b>Make cards</b> tab, in <b>3 Where the cards go</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 How the cards should look</b>.</li>
+        <div id="ntStatus"></div>
+        Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji), and its Media field stays empty because Nadeshiko is Japanese only.</li>
+      <li>On the <b>Create cards</b> tab, in <b>3 Destination</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 Prompt</b>.</li>
     </ol>
-    <div class="hint">Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji). Example sentences from Nadeshiko are Japanese only, so the Mandarin Media field stays empty unless you add something yourself.</div>
 
     <h3>By hand (if you prefer, or to see what it does)</h3>
     <ol>
@@ -427,13 +427,13 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Click <b>Cards...</b>. At the top, <b>Card 1</b> is selected. Choose <b>Front Template</b>, delete what's there and paste the Card 1 front below. Do the same for <b>Back Template</b> and <b>Styling</b>.</li>
       <li>Switch the top dropdown to <b>Card 2</b> and paste its front and back (styling is shared). Click <b>Save</b>.</li>
       <li>Japanese only: the handwriting card needs one extra file. <a href="/api/notetypes/handwriting" download>Download _kanjicanvas.js</a>, then press <b>Windows key + R</b>, paste <code>%APPDATA%\Anki2</code> and press Enter. Open your profile folder (usually <b>User 1</b>), then <b>collection.media</b>, and move the file in there.</li>
+      <li>Want it different? Ask an AI (ChatGPT or Claude) to change a template for you: paste it and say what you want, for example "make the word bigger and add a dark mode", "show the meaning in Vietnamese first", or "adapt this for Korean". Then paste the result back into Anki.</li>
     </ol>
     <div id="ntTemplates"></div>
-    <div class="notice good"><b>Want it different?</b> You can ask an AI (ChatGPT or Claude) to change these templates for you: paste a template and say what you want, for example "make the word bigger and add a dark mode", "show the meaning in Vietnamese first", or "adapt this for Korean". Then paste the result back into Anki.</div>
   </section>
 
   <section class="card" id="guide-openai">
-    <h2>OpenAI API (easiest)</h2>
+    <h2>OpenAI API</h2>
     <ol>
       <li>Go to <code>platform.openai.com</code> and sign up or log in. This is separate from a ChatGPT subscription.</li>
       <li>Add a little money: click the gear icon (Settings), then <b>Billing</b>, then <b>Add payment details</b>. $5 lasts a long time for flashcards.</li>
@@ -441,32 +441,31 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Open <code>platform.openai.com/api-keys</code> and click <b>Create new secret key</b>. Give it any name and click Create.</li>
       <li>Click <b>Copy</b>. The key starts with <code>sk-</code>. You can only see it once, so paste it in the next step right away.</li>
       <li>In this app click <b>AI settings</b> (top right), paste the key into <b>API key</b>, then click <b>Save AI settings</b>.</li>
-      <li>On the <b>Make cards</b> tab, set <b>AI</b> to <b>OpenAI API</b>. It should say <b>API key set</b>.</li>
+      <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>OpenAI API</b>. It should say <b>API key set</b>.</li>
     </ol>
   </section>
 
   <section class="card" id="guide-codex">
-    <h2>ChatGPT subscription (via Codex)</h2>
-    <div class="hint" style="margin:0">Needs a paid ChatGPT plan (Plus or higher).</div>
+    <h2>ChatGPT subscription</h2>
     <ol>
+      <li>Make sure you have a paid ChatGPT plan (Plus or higher).</li>
       <li>Install <b>Node.js</b>: go to <code>nodejs.org</code>, download the <b>LTS</b> version, open it and click Next until it's done. Keep all the default options.</li>
       <li>Open <b>Command Prompt</b>: press the Windows key, type <b>cmd</b>, press Enter.</li>
       <li>Paste this and press Enter (wait until it finishes, about a minute):
-        <div class="cmd"><code>npm install -g @openai/codex</code><button class="small">Copy</button></div></li>
+        <div class="cmd"><code>npm install -g @openai/codex</code><button class="small">Copy</button></div>
+        If it says "npm is not recognized", close the Command Prompt, open a new one and try again. If it still fails, restart the computer.</li>
       <li>Then paste this and press Enter:
         <div class="cmd"><code>codex login</code><button class="small">Copy</button></div>
         A browser window opens. Choose <b>Sign in with ChatGPT</b> and log in with your ChatGPT account.</li>
       <li>When it says you're signed in, close the Command Prompt.</li>
-      <li>On the <b>Make cards</b> tab, set <b>AI</b> to <b>ChatGPT subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
+      <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>ChatGPT subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
     </ol>
-    <div class="hint"><b>"npm is not recognized"?</b> Close the Command Prompt and open a new one after installing Node.js. If it still fails, restart the computer.</div>
   </section>
 
   <section class="card" id="guide-claude">
-    <h2>Claude subscription (via Claude Code)</h2>
-    <div class="hint" style="margin:0">Needs a paid Claude plan (Pro or Max).</div>
+    <h2>Claude subscription</h2>
     <ol>
-      <li>Install <b>Git for Windows</b>: go to <code>git-scm.com</code>, click <b>Download for Windows</b>, open it and click Next until it's done. Keep all the default options.</li>
+      <li>Make sure you have a paid Claude plan (Pro or Max).</li>
       <li>Open <b>PowerShell</b>: press the Windows key, type <b>powershell</b>, press Enter.</li>
       <li>Paste this and press Enter:
         <div class="cmd"><code>irm https://claude.ai/install.ps1 | iex</code><button class="small">Copy</button></div></li>
@@ -474,20 +473,40 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <div class="cmd"><code>claude</code><button class="small">Copy</button></div>
         Follow the questions. When asked how to log in, choose your <b>Claude account</b> (subscription) and log in in the browser.</li>
       <li>When you see Claude's chat screen, type <code>/exit</code> and press Enter.</li>
-      <li>On the <b>Make cards</b> tab, set <b>AI</b> to <b>Claude subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
+      <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>Claude subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
     </ol>
   </section>
 
   <section class="card" id="guide-nadeshiko">
-    <h2>Nadeshiko (example sentences with image and audio)</h2>
+    <h2>Nadeshiko</h2>
     <ol>
+      <li>Make sure your note type has a field for the media, for example one called <b>Media</b>. The <button class="link" data-jump="guide-notetype">ready-made note types</button> have it.</li>
       <li>Make a free account at <code>nadeshiko.co</code>, then open <code>nadeshiko.co/user/developer</code> and create an API key. Copy it.</li>
       <li>In this app open the <b>Nadeshiko</b> tab and paste the key into <b>Nadeshiko API key</b>.</li>
       <li>Optional: paste your MyAnimeList profile link (your list must be public) and click <b>Update from MyAnimeList</b>. Then sentences come from anime you know first.</li>
-      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles.</li>
+      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry images and audio.</li>
     </ol>
-    <div class="hint">Your note type needs a field for it, for example one called <b>Media</b>. The <button class="link" data-jump="guide-notetype">ready-made card types</button> have it. Images and audio only go in with <b>Straight into Anki</b>.</div>
   </section>
+
+  <section class="card" id="guide-iphone">
+    <h2>iPhone clips</h2>
+    <p>For cards that are already in Anki without media: while you study on your iPhone, tap <b>Get clip</b> on the back of the card. A Shortcut finds an anime clip with that word, saves the video, copies the Japanese and English subtitles, and goes back to Anki so you can add them to the card. Japanese only.</p>
+    <ol>
+      <li>You need an iPhone with <b>AnkiMobile</b> (paid, from the App Store) and the <b>Shortcuts</b> app (comes with the iPhone). Your cards need the Japanese <button class="link" data-jump="guide-notetype">note type</button> from this guide, which has the <b>Get clip</b> button.</li>
+      <li>Get your Nadeshiko API key (see <button class="link" data-jump="guide-nadeshiko">Nadeshiko</button>) and, in this app's <b>Nadeshiko</b> tab, click <b>Copy</b> under "JSON for the Shortcut". Send both to your iPhone, for example in a note or an email to yourself.</li>
+      <li id="clipLinkStep">On the iPhone, open the Ankiji Nadeshiko link and tap <b>Add Shortcut</b>.</li>
+      <li>In the Shortcuts app, tap <b>...</b> on <b>Ankiji Nadeshiko</b> to open it. The first two boxes are placeholders: replace <b>[Replace this with Nadeshiko API key]</b> with your key, and <b>[Replace this with JSON of anime ID from Nadeshiko]</b> with the JSON from step 2. Tap <b>Done</b>.</li>
+      <li>Keep the name <b>Ankiji Nadeshiko</b>. The Get clip button looks for exactly that name.</li>
+      <li>In AnkiMobile, study as usual. On a card with no media, tap <b>Get clip</b>. The first time, the iPhone asks whether the Shortcut may connect to Nadeshiko and save files: tap <b>Allow</b>. If it says the folder can't be found, open the Shortcut, tap the folder in the <b>Save File</b> step and pick <b>On My iPhone</b>.</li>
+      <li>Back in AnkiMobile, edit the card. In the <b>Media</b> field, paste the subtitles, then attach the video from the Files app (it's named after the word, for example <code>生まれる.mp4</code>).</li>
+      <li>If there's no clip for the word, you see "No clip on Nadeshiko". It looks in your anime first, then in all anime.</li>
+    </ol>
+  </section>
+
+  <button id="toTop" class="totop" type="button" aria-label="Back to top" hidden>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    Top
+  </button>
 </main>
 
 <!-- AI settings drawer -->
@@ -497,30 +516,26 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <h3 style="font-size:14px;margin:18px 0 4px">OpenAI API</h3>
   <label for="apiKey">API key</label>
   <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
-  <div class="hint" id="keyHint"></div>
+  <div class="hint"><button class="link" data-guide="guide-openai">OpenAI setup guide</button></div>
   <label for="openaiModel">Model</label>
-  <input id="openaiModel" type="text" list="openaiModels">
-  <datalist id="openaiModels">
-    <option value="gpt-5.4-mini"><option value="gpt-5.4-nano"><option value="gpt-5-mini"><option value="gpt-5-nano">
-  </datalist>
-  <div class="hint"><code>gpt-5.4-mini</code> is a good balance. <code>gpt-5.4-nano</code> and <code>gpt-5-nano</code> are cheaper but read photos and Japanese less reliably.</div>
+  <select id="openaiModel">
+    <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+    <option value="gpt-5.4-nano">gpt-5.4-nano</option>
+    <option value="gpt-5-mini">gpt-5-mini</option>
+    <option value="gpt-5-nano">gpt-5-nano</option>
+  </select>
 
   <h3 style="font-size:14px;margin:22px 0 4px">ChatGPT subscription (Codex CLI)</h3>
-  <div class="hint">One-time setup in Command Prompt (needs Node.js):<br>
-    <code>npm install -g @openai/codex</code><br>
-    then <code>codex login</code> and choose <b>Sign in with ChatGPT</b>. Then click "Check again" next to the AI dropdown. Step by step: see the <b>Setup guide</b> tab.</div>
+  <div class="hint"><button class="link" data-guide="guide-codex">ChatGPT setup guide</button></div>
   <label for="codexModel">Model (optional)</label>
   <input id="codexModel" type="text" placeholder="leave blank for Codex's default">
 
   <h3 style="font-size:14px;margin:22px 0 4px">Claude subscription (Claude Code)</h3>
-  <div class="hint">One-time setup in PowerShell:<br>
-    <code>irm https://claude.ai/install.ps1 | iex</code><br>
-    then run <code>claude</code> once and log in with your Claude account. Then click "Check again" next to the AI dropdown.</div>
+  <div class="hint"><button class="link" data-guide="guide-claude">Claude setup guide</button></div>
   <label for="claudeModel">Model (optional)</label>
   <input id="claudeModel" type="text" placeholder="e.g. sonnet or haiku, blank for default">
 
   <div style="margin-top:20px"><button id="saveSettings" class="primary">Save AI settings</button> <span id="settingsSaved" class="saved"></span></div>
-  <p class="hint" style="margin-top:18px">Everything is saved in <code>settings.json</code> next to the app, on this computer only.</p>
 </aside>
 
 <!-- Reset dialog -->
@@ -576,14 +591,17 @@ function fillForm(s){
   $("#pdfMode").value = s.pdf_mode;
   $("#manualFields").value = s.manual_fields;
   $("#modelText").value = s.model;
-  $("#openaiModel").value = s.openai_model;
+  const om = $("#openaiModel");
+  if (s.openai_model && ![...om.options].some(o => o.value === s.openai_model))
+    om.add(new Option(s.openai_model, s.openai_model));  // keep a model typed in an older version
+  om.value = s.openai_model || "gpt-5.4-mini";
   $("#codexModel").value = s.codex_model;
   $("#claudeModel").value = s.claude_model;
   $("#malProfile").value = s.mal_profile;
   $("#mediaKinds").querySelectorAll("input").forEach(i => i.checked = (s.media_categories || []).includes(i.value));
   $("#mediaFallback").checked = !!s.media_fallback;
   showNadeKeyHint(s);
-  $("#keyHint").textContent = s.openai_key_hint ? `Saved key ending ${s.openai_key_hint}. Leave blank to keep it.` : "No key saved yet.";
+  showKey("#apiKey", s.openai_key_hint);
   applyTheme(s.theme || "system");
 }
 async function loadSettings(){ state.settings = await api("/api/settings"); fillForm(state.settings); }
@@ -648,15 +666,26 @@ addEventListener("pagehide", () => {
   if (saveTimer) fetch("/api/settings", {method:"POST", keepalive:true, headers:{"Content-Type":"application/json"}, body:JSON.stringify(formValues())});
 });
 
+// Saved keys never come back to the page, so a saved key is shown as this stand-in (dots in a
+// password field). Sending it back means "keep the saved key".
+const KEY_MASK = "saved-key-kept";
+function showKey(sel, saved){ $(sel).value = saved ? KEY_MASK : ""; }
+function keyValue(sel){ const v = $(sel).value.trim(); return v === KEY_MASK ? "" : v; }
+["#apiKey", "#nadeKey"].forEach(sel => {
+  $(sel).addEventListener("focus", e => { if (e.target.value === KEY_MASK) e.target.select(); });
+  $(sel).addEventListener("input", e => {  // typing after the stand-in instead of over it
+    if (e.target.value.startsWith(KEY_MASK) && e.target.value !== KEY_MASK) e.target.value = e.target.value.slice(KEY_MASK.length);
+  });
+});
+
 $("#openSettings").onclick = () => $("#drawer").classList.add("open");
 $("#closeSettings").onclick = () => $("#drawer").classList.remove("open");
 $("#saveSettings").onclick = async () => {
   state.settings = await post("/api/settings", {
-    openai_api_key:$("#apiKey").value.trim(), openai_model:$("#openaiModel").value.trim(),
+    openai_api_key:keyValue("#apiKey"), openai_model:$("#openaiModel").value,
     codex_model:$("#codexModel").value.trim(), claude_model:$("#claudeModel").value.trim()
   });
-  $("#apiKey").value = "";
-  $("#keyHint").textContent = state.settings.openai_key_hint ? `Saved key ending ${state.settings.openai_key_hint}. Leave blank to keep it.` : "No key saved yet.";
+  showKey("#apiKey", state.settings.openai_key_hint);
   flash("#settingsSaved", "Saved");
   checkProvider();
 };
@@ -679,12 +708,16 @@ $("#resetGo").onclick = async () => {
 async function checkProvider(){
   const p = $("#provider").value, el = $("#providerStatus");
   el.textContent = "Checking..."; el.style.color = "";
+  const guide = $("#providerGuide");
+  guide.hidden = true;
+  guide.textContent = {openai: "OpenAI", codex: "ChatGPT", claude: "Claude"}[p] + " setup guide";
   try {
     const r = await api(`/api/provider/check?provider=${p}`);
     if ($("#provider").value !== p) return; // user switched again meanwhile
     el.textContent = (r.ok ? "✓ " : "⚠ ") + r.detail;
     el.style.color = r.ok ? "var(--accent)" : "var(--warn)";
-  } catch(e){ el.textContent = e.message; }
+    guide.hidden = r.ok;
+  } catch(e){ el.textContent = e.message; guide.hidden = false; }
 }
 $("#provider").addEventListener("change", checkProvider);
 $("#providerRecheck").onclick = checkProvider;
@@ -741,6 +774,7 @@ function useManualFields(){
   state.fields = $("#manualFields").value.split(",").map(s => s.trim()).filter(Boolean);
   if (state.fields.length < 2) state.fields = ["Front","Back"];
   $("#fieldsInfo").textContent = "";
+  showMediaFieldWarning();
 }
 async function loadFields(){
   try {
@@ -750,6 +784,12 @@ async function loadFields(){
     if (state.templates.length) info += `<br>Makes ${state.templates.length} card${state.templates.length>1?"s":""} per note: ${state.templates.map(esc).join(", ")}`;
     $("#fieldsInfo").innerHTML = info;
   } catch(e){ $("#fieldsInfo").textContent = e.message; }
+  showMediaFieldWarning();
+}
+function showMediaFieldWarning(){
+  // Without Anki the field list is just what was typed, and media needs Anki anyway.
+  $("#mediaFieldWarn").innerHTML = !state.anki.ok || pickMediaField(state.fields) ? "" :
+    '<div class="notice warn">This note type has no Media field, so media can\'t be attached. <button class="link" data-guide="guide-notetype">Note type setup guide</button></div>';
 }
 $("#modelSel").addEventListener("change", async () => { await loadFields(); remember(); updateHints(); targetChanged(); });
 $("#manualFields").addEventListener("input", useManualFields);
@@ -767,7 +807,7 @@ function updateHints(){
   if (multi && d === "both") { $("#direction").value = "forward"; return updateHints(); }
   let hint;
   if (d === "forward") hint = multi
-    ? `Recommended. "${m}" already makes ${state.templates.length} cards per note (${state.templates.join(", ")}), so you get both directions automatically.`
+    ? `This note type makes ${state.templates.length} cards per note.`
     : "Each note is added as generated. Anki makes whatever cards the note type defines.";
   else if (d === "backward") hint = "Puts field 2 into field 1 and field 1 into field 2 when sending. Only useful if the AI filled them the wrong way round. Duplicates are then checked on the new first field.";
   else hint = m === "Basic" ? 'Sends as "Basic (and reversed card)" so Anki makes a card for each direction.'
@@ -775,7 +815,7 @@ function updateHints(){
   $("#directionHint").textContent = hint;
   $("#deliveryHint").innerHTML = $("#delivery").value === "ankiconnect"
     ? (state.anki.ok ? "Anki is open and AnkiConnect is working." :
-       "Anki isn't reachable. Open Anki desktop. First time? In Anki go to <b>Tools > Add-ons > Get Add-ons</b>, enter code <code>2055492159</code>, restart Anki, then click Recheck at the top.")
+       'Anki isn\'t connected. <button class="link" data-guide="guide-anki">Anki setup guide</button>')
     : "You'll get a .txt file. In Anki use <b>File > Import</b>; the deck, note type and tags are pre-filled. Set <b>Existing notes</b> to <b>Preserve</b> so duplicates are skipped.";
   renderSendButton();
 }
@@ -818,18 +858,40 @@ function renderThumbs(){
 $("#clearMaterial").onclick = () => { state.images = []; renderThumbs(); $("#material").value = ""; notice("#extractStatus"); };
 
 // ---------- generate ----------
+// While generating, the same button cancels: the server stops the AI, the page drops the request.
+function setGenerating(on){
+  const btn = $("#generate");
+  btn.textContent = on ? "Cancel" : "Generate cards";
+  btn.classList.toggle("primary", !on);
+  btn.classList.toggle("danger", on);
+}
+async function cancelGenerate(){
+  const g = state.gen;
+  if (!g) return;
+  state.gen = null;
+  g.stopTicking();
+  g.controller.abort();
+  setGenerating(false);
+  notice("#genStatus", "warn", "Cancelled. No cards were added.");
+  try { await post("/api/generate/cancel", {job_id: g.jobId}); } catch (e) {}
+}
 $("#generate").onclick = async () => {
+  if (state.gen) return cancelGenerate();
   const text = $("#material").value.trim();
   if (!text && !state.images.length) return notice("#genStatus", "warn", "Add some material first.");
   let instructions = $("#prompt").value.trim();
   if ($("#extra").value.trim()) instructions += "\n\nExtra instructions for this batch:\n" + $("#extra").value.trim();
-  const btn = $("#generate"); btn.disabled = true;
   const t0 = Date.now();
   const tick = setInterval(() => notice("#genStatus", "good", `<span class="spin"></span> Making cards... ${Math.round((Date.now()-t0)/1000)}s` +
      ($("#provider").value !== "openai" ? " (subscription options can take a minute or two)" : "")), 500);
+  const g = state.gen = {jobId: crypto.randomUUID(), controller: new AbortController(), stopTicking: () => clearInterval(tick)};
+  setGenerating(true);
   try {
-    const r = await post("/api/generate", { provider:$("#provider").value, fields:state.fields, instructions, text,
-      image_ids: state.images.map(i => i.id), media_field: pickMediaField(state.fields) });
+    const r = await api("/api/generate", {method: "POST", headers: {"Content-Type": "application/json"}, signal: g.controller.signal,
+      body: JSON.stringify({ job_id: g.jobId, provider:$("#provider").value, fields:state.fields, instructions, text,
+        image_ids: state.images.map(i => i.id), media_field: pickMediaField(state.fields) })});
+    if (state.gen !== g) return;  // cancelled while the answer was arriving
+    state.gen = null; setGenerating(false);
     clearInterval(tick);
     if (!r.cards.length){ notice("#genStatus", "warn", "The AI didn't return any cards. Try adjusting the prompt."); return; }
     state.cards = state.cards.length && confirm(`Add these ${r.cards.length} cards to the ${state.cards.length} already in the review list?\n(Cancel = replace them)`)
@@ -840,8 +902,12 @@ $("#generate").onclick = async () => {
     $("#reviewCard").style.display = "";
     await runCheck();
     $("#reviewCard").scrollIntoView({behavior:"smooth"});
-  } catch(e){ clearInterval(tick); notice("#genStatus", "bad", esc(e.message)); }
-  finally { btn.disabled = false; }
+  } catch(e){
+    clearInterval(tick);
+    if (state.gen !== g) return;  // cancelled: cancelGenerate already said so
+    state.gen = null; setGenerating(false);
+    notice("#genStatus", "bad", esc(e.message));
+  }
 };
 
 // ---------- review ----------
@@ -970,15 +1036,14 @@ function renderMediaBar(){
   btn.disabled = !n || !target || !info.has_key || state.mediaRunning;
   let msg;
   if (!info.has_key) msg = 'Add your Nadeshiko API key in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button> first.';
-  else if (!target) msg = 'This note type has no "Media" field. Pick the field to fill under Options.';
+  else if (!target) msg = 'This note type has no Media field, so media can\'t be attached. <button class="link" data-guide="guide-notetype">Note type setup guide</button>';
   else {
-    msg = `Fills the <code>${esc(target)}</code> field. `;
-    msg += info.my_anime ? `Looks in your ${info.my_anime} anime from the Nadeshiko tab first.`
+    msg = info.my_anime ? ""
       : 'No anime are ticked in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button>, so all titles are searched.';
     if ($("#delivery").value === "tsv") msg += " Images and audio only go into Anki with <b>Straight into Anki</b>. An import file keeps just the text.";
   }
-  $("#mediaInfo").innerHTML = msg;
-  $("#mediaInfo").querySelectorAll("[data-goto]").forEach(b => b.onclick = () => showTab(b.dataset.goto));
+  $("#mediaInfo").innerHTML = msg.trim();
+  $("#mediaInfo").hidden = !msg.trim();
 }
 
 function mediaCell(c){
@@ -1099,14 +1164,32 @@ function showTab(id){
   if (id === "cardsTab" && state.settings.provider) loadMediaInfo();
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
   try { localStorage.setItem("tab", id); } catch (e) {}
+  updateToTop();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 { let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (s === "nadeshikoTab" || s === "guideTab") t = s; } catch (e) {} showTab(t); }
+// Shared iCloud link of the clean "Ankiji Nadeshiko" Shortcut (no API key inside). Empty until it exists.
+const CLIP_SHORTCUT_LINK = "https://www.icloud.com/shortcuts/d20bacb214db4ce9b3b19e48302ebed1";
+$("#clipLinkStep").innerHTML = CLIP_SHORTCUT_LINK
+  ? `On the iPhone, open <a href="${CLIP_SHORTCUT_LINK}" target="_blank" rel="noopener">this Ankiji Nadeshiko link</a> and tap <b>Add Shortcut</b>. You can also copy it: <code>${esc(CLIP_SHORTCUT_LINK)}</code>`
+  : "Ask the person who shared Ankiji with you for the <b>Ankiji Nadeshiko</b> link, open it on the iPhone and tap <b>Add Shortcut</b>.";
+
+// "Top" button: only on the guide, once scrolled past the first section
+function updateToTop(){ $("#toTop").hidden = $("#guideTab").hidden || scrollY < 400; }
+addEventListener("scroll", updateToTop, {passive: true});
+$("#toTop").onclick = () => scrollTo({top: 0, behavior: "smooth"});
 function jumpTo(id){  // scroll below the sticky header
   const el = document.getElementById(id);
   if (el) scrollTo({top: el.getBoundingClientRect().top + scrollY - document.querySelector("header").offsetHeight - 12, behavior:"smooth"});
 }
 $("#providerGuide").onclick = () => { showTab("guideTab"); jumpTo("guide-" + $("#provider").value); };
+// links into the guide or another tab inside text that is re-rendered (hints), so delegated
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-goto]");
+  if (t) { e.preventDefault(); showTab(t.dataset.goto); scrollTo(0, 0); return; }
+  const b = e.target.closest("[data-guide]");
+  if (b) { $("#drawer").classList.remove("open"); showTab("guideTab"); jumpTo(b.dataset.guide); }
+});
 document.querySelectorAll("#guideTab [data-jump]").forEach(b => b.onclick = () => jumpTo(b.dataset.jump));
 async function createNotetype(kind){
   notice("#ntStatus", "good", '<span class="spin"></span> Creating...');
@@ -1115,7 +1198,7 @@ async function createNotetype(kind){
     if (!state.anki.ok) throw new Error("Anki isn't connected. Open Anki (with AnkiConnect, see Connect Anki above), then try again.");
     const r = await post("/api/anki/create-notetype", {kind});
     await refreshAnki();
-    notice("#ntStatus", "good", esc(r.message) + ` Now choose <b>${esc(r.name)}</b> as the Note type on the Make cards tab.`);
+    notice("#ntStatus", "good", esc(r.message) + ` Now choose <b>${esc(r.name)}</b> as the Note type on the Create cards tab.`);
   } catch (e) { notice("#ntStatus", "bad", esc(e.message)); }
 }
 $("#ntJapanese").onclick = () => createNotetype("japanese");
@@ -1143,11 +1226,11 @@ document.querySelectorAll("#guideTab .cmd button").forEach(b => b.onclick = asyn
 
 // ---------- Nadeshiko ----------
 function showNadeKeyHint(s){
-  $("#nadeKeyHint").textContent = s.nadeshiko_key_hint ? `Saved key ending ${s.nadeshiko_key_hint}. Leave blank to keep it.` : "Get one at nadeshiko.co/user/developer. Saved on this computer only.";
+  showKey("#nadeKey", s.nadeshiko_key_hint);
+  $("#nadeKeyHint").hidden = !!s.nadeshiko_key_hint;
 }
 async function saveNadeSettings(){
-  state.settings = await post("/api/settings", {nadeshiko_api_key:$("#nadeKey").value.trim(), mal_profile:$("#malProfile").value.trim()});
-  $("#nadeKey").value = "";
+  state.settings = await post("/api/settings", {nadeshiko_api_key:keyValue("#nadeKey"), mal_profile:$("#malProfile").value.trim()});
   showNadeKeyHint(state.settings);
   loadMediaInfo();
 }
@@ -1164,7 +1247,7 @@ function renderNadeRows(v){
   const drawn = JSON.stringify(v.rows);
   if (drawn === nadeRowsDrawn) return;
   nadeRowsDrawn = drawn;
-  $("#nadeTable").innerHTML = `<tr><th>Use</th><th>Your anime</th><th>List</th><th>Nadeshiko match</th><th></th></tr>` + v.rows.map(r => `<tr data-id="${r.id}">
+  $("#nadeTable").innerHTML = `<tr><th>Use</th><th>Anime</th><th>List</th><th>Nadeshiko match</th><th></th></tr>` + v.rows.map(r => `<tr data-id="${r.id}">
     <td><input type="checkbox" class="nadeUse" aria-label="Use ${esc(r.title)}" ${r.use?"checked":""} ${r.match?"":"disabled"}></td>
     <td>${esc(r.title_en || r.title)}${r.title_en && r.title_en !== r.title ? `<span class="sub">${esc(r.title)}</span>` : ""}</td>
     <td>${r.status === "watching" ? "Watching" : "Completed"}</td>
@@ -1189,7 +1272,7 @@ function renderNade(v){
   if (!has) return;
   $("#nadeJson").value = v.json;
   $("#nadeSelected").textContent = `${v.selected} anime selected` + (v.over_limit ? ` (only the first 100 are used)` : "");
-  $("#nadeCount").textContent = `${v.rows.length} on your list · ${c.matched} matched · ${c.check} to check · ${c.missing} not on Nadeshiko` + (c.pending ? ` · ${c.pending} not searched yet` : "") + (v.last_sync ? ` · last updated ${v.last_sync.replace("T"," ")}` : "");
+  $("#nadeCount").textContent = `${v.rows.length} on your list · ${c.matched} matched · ${c.check} to check · ${c.missing} not on Nadeshiko` + (c.pending ? ` · ${c.pending} not searched yet` : "");
   renderNadeRows(v);
   $("#nadeTable").querySelectorAll(".nadeAgain").forEach(b => b.disabled = busy);
 }

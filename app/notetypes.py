@@ -79,22 +79,28 @@ MEDIA_BLOCK = r"""{{#Media}}
 </script>
 {{/Media}}"""
 
-# No media yet: a button that searches the word on Nadeshiko's website.
+# No media yet: "Get clip" runs the iPhone Shortcut "Ankiji Nadeshiko" (Setup guide, iPhone clips),
+# "Browse examples" opens the word on Nadeshiko's website.
 NADESHIKO_LINK = r"""{{^Media}}
 <div id="nade-link"></div>
 <div id="nade-word" style="display:none">{{text:Front}}</div>
 <script>
 (function () {
+  var SHORTCUT = "Ankiji Nadeshiko";
   var w = (document.getElementById("nade-word").textContent || "")
     .replace(/\[[^\]]*\]/g, "").replace(/[（(][^)）]*[)）]/g, "").trim();
   if (!w) return;
   var box = document.getElementById("nade-link");
-  var a = document.createElement("a");
-  a.href = "https://nadeshiko.co/en/search/" + encodeURIComponent('"' + w + '"');
-  a.textContent = "Browse examples";
-  a.className = "nade-btn nade-alt";
-  a.addEventListener("click", function (e) { e.stopPropagation(); });
-  box.appendChild(a);
+  function btn(text, href, cls) {
+    var a = document.createElement("a");
+    a.href = href;
+    a.textContent = text;
+    a.className = cls;
+    a.addEventListener("click", function (e) { e.stopPropagation(); });
+    box.appendChild(a);
+  }
+  btn("Get clip", "shortcuts://run-shortcut?name=" + encodeURIComponent(SHORTCUT) + "&input=text&text=" + encodeURIComponent(w), "nade-btn");
+  btn("Browse", "https://nadeshiko.co/en/search/" + encodeURIComponent('"' + w + '"'), "nade-btn nade-alt");
 })();
 </script>
 {{/Media}}"""

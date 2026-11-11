@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title Anki Card Maker
+title Ankiji
 
 where py >nul 2>nul && (set "PY=py -3") || (set "PY=python")
 %PY% --version >nul 2>nul || (
@@ -21,7 +21,7 @@ if not exist ".venv\installed.flag" (
 )
 
 echo.
-echo Anki Card Maker is running at http://127.0.0.1:8770
+echo Ankiji is running at http://127.0.0.1:8770
 echo The app opens in its own window. Close that window to stop the app.
 echo.
 ".venv\Scripts\python.exe" run.py

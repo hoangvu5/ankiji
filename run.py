@@ -1,4 +1,4 @@
-"""Start Anki Card Maker in its own window.
+"""Start Ankiji in its own window.
 
 Runs the local server and opens the page as an app window (Microsoft Edge or Chrome
 in app mode: no address bar or tabs). Closing the window stops the app.
@@ -16,7 +16,7 @@ import time
 import traceback
 import webbrowser
 
-PORT = int(os.environ.get("ANKI_CARD_MAKER_PORT") or 8770)  # never 8765: that is AnkiConnect
+PORT = int(os.environ.get("ANKIJI_PORT") or 8770)  # never 8765: that is AnkiConnect
 URL = f"http://127.0.0.1:{PORT}"
 
 
@@ -32,7 +32,7 @@ def _fix_streams():
 def _message(text):
     try:
         import ctypes
-        ctypes.windll.user32.MessageBoxW(None, text, "Anki Card Maker", 0x10)
+        ctypes.windll.user32.MessageBoxW(None, text, "Ankiji", 0x10)
     except Exception:
         print(text)
 
@@ -95,7 +95,7 @@ def main():
             break
         time.sleep(0.1)
     if not server.started:
-        _message(f"Anki Card Maker couldn't start. Something else may be using port {PORT}.\n"
+        _message(f"Ankiji couldn't start. Something else may be using port {PORT}.\n"
                  "Restart the computer and try again.")
         return
 
@@ -138,4 +138,4 @@ if __name__ == "__main__":
         main()
     except Exception:
         traceback.print_exc()
-        _message("Anki Card Maker hit an error:\n\n" + traceback.format_exc()[-1500:])
+        _message("Ankiji hit an error:\n\n" + traceback.format_exc()[-1500:])

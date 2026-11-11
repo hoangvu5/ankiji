@@ -3,18 +3,16 @@ import json
 import os
 import threading
 import uuid
-from typing import List, Optional
+from typing import List
 
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from . import anki, extract, llm, media, nadeshiko, notetypes
-from .prompts import DEFAULT_PROMPTS, JAPANESE
+from .prompts import DEFAULT_PROMPTS
 from .paths import STATIC_DIR, data
 
 SETTINGS_PATH = data("settings.json")
-
-OLD_PLACEHOLDER = "(Placeholder - replace this with your own default prompt."
 
 DEFAULTS = {
     "provider": "openai",
@@ -52,6 +50,7 @@ RESET_GROUPS = {
 
 _lock = threading.Lock()
 IMAGES = {}  # id -> {"name", "b64"}
+JOBS = {}    # generation job id -> llm.Job, so a running generation can be cancelled
 
 
 def load_settings():
@@ -64,12 +63,6 @@ def load_settings():
         except Exception:
             pass
     s.update(saved)
-    if "prompts" not in saved:  # settings from before named prompts: keep a custom single prompt
-        old = (saved.get("default_prompt") or "").strip()
-        if old and not old.startswith(OLD_PLACEHOLDER) and old != JAPANESE.strip():
-            s["prompts"].append({"name": "My prompt", "text": old})
-            s["active_prompt"] = "My prompt"
-    s.pop("default_prompt", None)
     if not s["prompts"]:
         s["prompts"] = copy.deepcopy(DEFAULT_PROMPTS)
     if s["active_prompt"] not in [p["name"] for p in s["prompts"]]:
@@ -91,12 +84,17 @@ def public(s):
     return p
 
 
-app = FastAPI(title="Anki Card Maker")
+app = FastAPI(title="Ankiji")
 
 
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.get("/icon.png")
+def icon():
+    return FileResponse(os.path.join(STATIC_DIR, "icon.png"), media_type="image/png")
 
 
 @app.get("/api/settings")
@@ -168,15 +166,29 @@ def do_generate(data: dict = Body(...)):
     skip = data.get("media_field") if data.get("media_field") in fields[1:] else None
     if skip:
         instructions += f'\n\nAlways leave the field "{skip}" as an empty string. The app fills it later.'
+    job_id = str(data.get("job_id") or uuid.uuid4().hex)
+    job = JOBS[job_id] = llm.Job()
     try:
-        cards = llm.generate(provider, s, fields, instructions, data.get("text", ""), images)
+        cards = llm.generate(provider, s, fields, instructions, data.get("text", ""), images, job)
+    except llm.Cancelled:
+        raise HTTPException(409, "Cancelled.")
     except Exception as e:
         raise HTTPException(400, str(e))
+    finally:
+        JOBS.pop(job_id, None)
     if skip:
         j = fields.index(skip)
         for c in cards:
             c["fields"][j] = ""
     return {"cards": cards, "fields": fields}
+
+
+@app.post("/api/generate/cancel")
+def cancel_generate(data: dict = Body(...)):
+    job = JOBS.get(str(data.get("job_id")))
+    if job:
+        job.cancel()
+    return {"cancelled": bool(job)}
 
 
 @app.get("/api/anki/status")
