@@ -150,3 +150,9 @@ Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnec
 - Progress per part during long generations (currently one request with an elapsed-time spinner).
 - Sending existing deck fronts to the AI so it avoids generating cards that already exist.
 - Auto-fill media right after generating (now it's a click).
+
+## iPhone clips (Shortcut "Nadeshiko Clip")
+
+- The Japanese note type's back shows "Get clip" (runs `shortcuts://run-shortcut?name=Nadeshiko Clip&input=text&text=<word>`) and "Browse" when Media is empty. The Mandarin one has neither (Nadeshiko is Japanese only).
+- The user's Shortcut (read from its iCloud link, never stored): Text = search JSON with the anime `include` list typed in, POST /v1/search take 1 with `Authorization: Bearer <key>` in the headers of 2 "Get contents of URL" actions; if no segment, same search without the filter; if still none, notify "No clip on Nadeshiko" and open `anki://`. Otherwise download `urls.videoUrl` as `<word>.mp4` to Files (On My iPhone), copy "\nJA\nEN" (tags stripped) to the clipboard, open `anki://`. The user attaches the video and pastes the subtitles in AnkiMobile.
+- Sharing: the API key and anime list are typed into the actions, so the shared copy must use two Text actions with Import Questions (key, anime JSON) and placeholders, never the real values. `CLIP_SHORTCUT_LINK` in index.html holds the clean link; empty means the guide says to ask for it. An iCloud link can be checked without a phone: `GET https://www.icloud.com/shortcuts/api/records/<id>` gives `fields.shortcut.value.downloadURL`, an unsigned binary plist (plistlib).

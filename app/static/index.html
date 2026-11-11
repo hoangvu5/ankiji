@@ -370,6 +370,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <button class="small" data-jump="guide-codex">ChatGPT subscription</button>
       <button class="small" data-jump="guide-claude">Claude subscription</button>
       <button class="small" data-jump="guide-nadeshiko">Nadeshiko</button>
+      <button class="small" data-jump="guide-iphone">iPhone clips</button>
     </div>
     <h3>Which AI should I pick?</h3>
     <div class="tablewrap"><table>
@@ -484,6 +485,21 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>In this app open the <b>Nadeshiko</b> tab and paste the key into <b>Nadeshiko API key</b>.</li>
       <li>Optional: paste your MyAnimeList profile link (your list must be public) and click <b>Update from MyAnimeList</b>. Then sentences come from anime you know first.</li>
       <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry images and audio.</li>
+    </ol>
+  </section>
+
+  <section class="card" id="guide-iphone">
+    <h2>iPhone clips</h2>
+    <p>For cards that are already in Anki without media: while you study on your iPhone, tap <b>Get clip</b> on the back of the card. A Shortcut finds an anime clip with that word, saves the video, copies the Japanese and English subtitles, and goes back to Anki so you can add them to the card. Japanese only.</p>
+    <ol>
+      <li>You need an iPhone with <b>AnkiMobile</b> (paid, from the App Store) and the <b>Shortcuts</b> app (comes with the iPhone). Your cards need the Japanese <button class="link" data-jump="guide-notetype">note type</button> from this guide, which has the <b>Get clip</b> button.</li>
+      <li>Get your Nadeshiko API key (see <button class="link" data-jump="guide-nadeshiko">Nadeshiko</button>) and, in this app's <b>Nadeshiko</b> tab, click <b>Copy</b> under "JSON for the Shortcut". Send both to your iPhone, for example in a note or an email to yourself.</li>
+      <li id="clipLinkStep">On the iPhone, open the Nadeshiko Clip link and tap <b>Add Shortcut</b>.</li>
+      <li>It asks two questions: paste your <b>Nadeshiko API key</b>, then paste your <b>anime list</b> (the JSON from step 2).</li>
+      <li>Keep the name <b>Nadeshiko Clip</b>. The Get clip button looks for exactly that name.</li>
+      <li>In AnkiMobile, study as usual. On a card with no media, tap <b>Get clip</b>. The first time, the iPhone asks whether the Shortcut may connect to Nadeshiko and save files: tap <b>Allow</b>.</li>
+      <li>Back in AnkiMobile, edit the card. In the <b>Media</b> field, paste the subtitles, then attach the video from the Files app (it's named after the word, for example <code>生まれる.mp4</code>).</li>
+      <li>If there's no clip for the word, you see "No clip on Nadeshiko". It looks in your anime first, then in all anime.</li>
     </ol>
   </section>
 
@@ -1152,6 +1168,12 @@ function showTab(id){
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 { let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (s === "nadeshikoTab" || s === "guideTab") t = s; } catch (e) {} showTab(t); }
+// Shared iCloud link of the clean "Nadeshiko Clip" Shortcut (no API key inside). Empty until it exists.
+const CLIP_SHORTCUT_LINK = "";
+$("#clipLinkStep").innerHTML = CLIP_SHORTCUT_LINK
+  ? `On the iPhone, open <a href="${CLIP_SHORTCUT_LINK}" target="_blank" rel="noopener">this Nadeshiko Clip link</a> and tap <b>Add Shortcut</b>. You can also copy it: <code>${esc(CLIP_SHORTCUT_LINK)}</code>`
+  : "Ask the person who shared Ankiji with you for the <b>Nadeshiko Clip</b> link, open it on the iPhone and tap <b>Add Shortcut</b>.";
+
 // "Top" button: only on the guide, once scrolled past the first section
 function updateToTop(){ $("#toTop").hidden = $("#guideTab").hidden || scrollY < 400; }
 addEventListener("scroll", updateToTop, {passive: true});
