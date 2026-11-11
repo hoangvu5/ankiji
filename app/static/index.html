@@ -156,6 +156,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 #guideTab .cmd code{flex:1;padding:8px 10px;font-size:13px;overflow-x:auto;white-space:nowrap}
 #guideTab table td,#guideTab table th{padding:8px 10px}
 .gnav{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+#guideTab p{margin:6px 0 10px}
+.totop{position:fixed;right:24px;bottom:24px;z-index:6;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 14px;box-shadow:0 4px 14px var(--shadow)}
+.totop[hidden]{display:none}
 .tdetails{margin:10px 0;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .tdetails summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .tbox{display:flex;gap:8px;align-items:flex-start}
@@ -355,9 +358,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 </main>
 
 <main id="guideTab" hidden>
-  <section class="card">
+  <section class="card" id="guide-top">
     <h2>Setup guide</h2>
-    <div class="hint" style="margin:0">Everything you need to do once, step by step. You only need <b>one</b> of the three AI options.</div>
+    <p>Everything you need to do once, step by step. You only need <b>one</b> of the three AI options.</p>
     <div class="gnav">
       <button class="small" data-jump="guide-ankiweb">Anki account</button>
       <button class="small" data-jump="guide-anki">Connect Anki</button>
@@ -365,19 +368,19 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <button class="small" data-jump="guide-openai">OpenAI API</button>
       <button class="small" data-jump="guide-codex">ChatGPT subscription</button>
       <button class="small" data-jump="guide-claude">Claude subscription</button>
-      <button class="small" data-jump="guide-nadeshiko">Nadeshiko (media)</button>
+      <button class="small" data-jump="guide-nadeshiko">Nadeshiko</button>
     </div>
     <h3>Which AI should I pick?</h3>
     <div class="tablewrap"><table>
       <tr><th>Option</th><th>Good if</th><th>Cost</th><th>Setup</th></tr>
       <tr><td><b>OpenAI API</b></td><td>You want the easiest setup</td><td>Pay per use, usually a few cents per batch</td><td>Easy: copy one key</td></tr>
       <tr><td><b>ChatGPT subscription</b></td><td>You already pay for ChatGPT Plus or higher</td><td>No extra cost</td><td>Medium: install 2 programs</td></tr>
-      <tr><td><b>Claude subscription</b></td><td>You already pay for Claude Pro or Max</td><td>No extra cost</td><td>Medium: install 2 programs</td></tr>
+      <tr><td><b>Claude subscription</b></td><td>You already pay for Claude Pro or Max</td><td>No extra cost</td><td>Medium: install 1 program</td></tr>
     </table></div>
   </section>
 
   <section class="card" id="guide-ankiweb">
-    <h2>Make a free Anki account (to study on your phone too)</h2>
+    <h2>Anki account</h2>
     <ol>
       <li>Go to <code>ankiweb.net</code> and click <b>Sign Up</b>. Enter your email and a password, then confirm the email they send you.</li>
       <li>Install Anki on your computer from <code>apps.ankiweb.net</code> and open it.</li>
@@ -387,7 +390,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="guide-anki">
-    <h2>Connect Anki (do this first)</h2>
+    <h2>Connect Anki</h2>
     <ol>
       <li>Install <b>Anki</b> from <code>apps.ankiweb.net</code> if you don't have it, and open it.</li>
       <li>In Anki click <b>Tools</b>, then <b>Add-ons</b>, then <b>Get Add-ons...</b></li>
@@ -399,8 +402,8 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="guide-notetype">
-    <h2>Set up the card type (fields, look and style)</h2>
-    <div class="hint" style="margin:0">A "note type" decides which fields a card has and how it looks. These ready-made ones have three fields: <b>Front</b> (the word with its reading), <b>Back</b> (the meaning) and <b>Media</b> (example sentence with image and audio), and make two cards per word: word to meaning, and meaning to word.</div>
+    <h2>Card type</h2>
+    <p>A card type (Anki calls it a "note type") decides which fields a card has and how it looks. The ready-made ones have three fields: <b>Front</b> (the word with its reading), <b>Back</b> (the meaning) and <b>Media</b> (example sentence with image and audio). Each makes two cards per word: word to meaning, and meaning to word.</p>
     <h3>Easy way: one click</h3>
     <ol>
       <li>Make sure Anki is open and the top of this app says <b>Anki connected</b>.</li>
@@ -409,10 +412,10 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
           <button id="ntJapanese" class="primary" style="flex:0 0 auto">Create the Japanese card type</button>
           <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin card type</button>
         </div>
-        <div id="ntStatus"></div></li>
+        <div id="ntStatus"></div>
+        Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji), and its Media field stays empty because Nadeshiko is Japanese only.</li>
       <li>On the <b>Create cards</b> tab, in <b>3 Destination</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 Prompt</b>.</li>
     </ol>
-    <div class="hint">Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji). Example sentences from Nadeshiko are Japanese only, so the Mandarin Media field stays empty unless you add something yourself.</div>
 
     <h3>By hand (if you prefer, or to see what it does)</h3>
     <ol>
@@ -422,13 +425,13 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Click <b>Cards...</b>. At the top, <b>Card 1</b> is selected. Choose <b>Front Template</b>, delete what's there and paste the Card 1 front below. Do the same for <b>Back Template</b> and <b>Styling</b>.</li>
       <li>Switch the top dropdown to <b>Card 2</b> and paste its front and back (styling is shared). Click <b>Save</b>.</li>
       <li>Japanese only: the handwriting card needs one extra file. <a href="/api/notetypes/handwriting" download>Download _kanjicanvas.js</a>, then press <b>Windows key + R</b>, paste <code>%APPDATA%\Anki2</code> and press Enter. Open your profile folder (usually <b>User 1</b>), then <b>collection.media</b>, and move the file in there.</li>
+      <li>Want it different? Ask an AI (ChatGPT or Claude) to change a template for you: paste it and say what you want, for example "make the word bigger and add a dark mode", "show the meaning in Vietnamese first", or "adapt this for Korean". Then paste the result back into Anki.</li>
     </ol>
     <div id="ntTemplates"></div>
-    <div class="notice good"><b>Want it different?</b> You can ask an AI (ChatGPT or Claude) to change these templates for you: paste a template and say what you want, for example "make the word bigger and add a dark mode", "show the meaning in Vietnamese first", or "adapt this for Korean". Then paste the result back into Anki.</div>
   </section>
 
   <section class="card" id="guide-openai">
-    <h2>OpenAI API (easiest)</h2>
+    <h2>OpenAI API</h2>
     <ol>
       <li>Go to <code>platform.openai.com</code> and sign up or log in. This is separate from a ChatGPT subscription.</li>
       <li>Add a little money: click the gear icon (Settings), then <b>Billing</b>, then <b>Add payment details</b>. $5 lasts a long time for flashcards.</li>
@@ -441,26 +444,26 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="guide-codex">
-    <h2>ChatGPT subscription (via Codex)</h2>
-    <div class="hint" style="margin:0">Needs a paid ChatGPT plan (Plus or higher).</div>
+    <h2>ChatGPT subscription</h2>
     <ol>
+      <li>Make sure you have a paid ChatGPT plan (Plus or higher).</li>
       <li>Install <b>Node.js</b>: go to <code>nodejs.org</code>, download the <b>LTS</b> version, open it and click Next until it's done. Keep all the default options.</li>
       <li>Open <b>Command Prompt</b>: press the Windows key, type <b>cmd</b>, press Enter.</li>
       <li>Paste this and press Enter (wait until it finishes, about a minute):
-        <div class="cmd"><code>npm install -g @openai/codex</code><button class="small">Copy</button></div></li>
+        <div class="cmd"><code>npm install -g @openai/codex</code><button class="small">Copy</button></div>
+        If it says "npm is not recognized", close the Command Prompt, open a new one and try again. If it still fails, restart the computer.</li>
       <li>Then paste this and press Enter:
         <div class="cmd"><code>codex login</code><button class="small">Copy</button></div>
         A browser window opens. Choose <b>Sign in with ChatGPT</b> and log in with your ChatGPT account.</li>
       <li>When it says you're signed in, close the Command Prompt.</li>
       <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>ChatGPT subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
     </ol>
-    <div class="hint"><b>"npm is not recognized"?</b> Close the Command Prompt and open a new one after installing Node.js. If it still fails, restart the computer.</div>
   </section>
 
   <section class="card" id="guide-claude">
-    <h2>Claude subscription (via Claude Code)</h2>
-    <div class="hint" style="margin:0">Needs a paid Claude plan (Pro or Max).</div>
+    <h2>Claude subscription</h2>
     <ol>
+      <li>Make sure you have a paid Claude plan (Pro or Max).</li>
       <li>Open <b>PowerShell</b>: press the Windows key, type <b>powershell</b>, press Enter.</li>
       <li>Paste this and press Enter:
         <div class="cmd"><code>irm https://claude.ai/install.ps1 | iex</code><button class="small">Copy</button></div></li>
@@ -473,15 +476,20 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="guide-nadeshiko">
-    <h2>Nadeshiko (example sentences with image and audio)</h2>
+    <h2>Nadeshiko</h2>
     <ol>
+      <li>Make sure your card type has a field for the media, for example one called <b>Media</b>. The <button class="link" data-jump="guide-notetype">ready-made card types</button> have it.</li>
       <li>Make a free account at <code>nadeshiko.co</code>, then open <code>nadeshiko.co/user/developer</code> and create an API key. Copy it.</li>
       <li>In this app open the <b>Nadeshiko</b> tab and paste the key into <b>Nadeshiko API key</b>.</li>
       <li>Optional: paste your MyAnimeList profile link (your list must be public) and click <b>Update from MyAnimeList</b>. Then sentences come from anime you know first.</li>
-      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles.</li>
+      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry images and audio.</li>
     </ol>
-    <div class="hint">Your note type needs a field for it, for example one called <b>Media</b>. The <button class="link" data-jump="guide-notetype">ready-made card types</button> have it. Images and audio only go in with <b>Straight into Anki</b>.</div>
   </section>
+
+  <button id="toTop" class="totop" type="button" aria-label="Back to top" hidden>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    Top
+  </button>
 </main>
 
 <!-- AI settings drawer -->
@@ -1106,9 +1114,14 @@ function showTab(id){
   if (id === "cardsTab" && state.settings.provider) loadMediaInfo();
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
   try { localStorage.setItem("tab", id); } catch (e) {}
+  updateToTop();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 { let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (s === "nadeshikoTab" || s === "guideTab") t = s; } catch (e) {} showTab(t); }
+// "Top" button: only on the guide, once scrolled past the first section
+function updateToTop(){ $("#toTop").hidden = $("#guideTab").hidden || scrollY < 400; }
+addEventListener("scroll", updateToTop, {passive: true});
+$("#toTop").onclick = () => scrollTo({top: 0, behavior: "smooth"});
 function jumpTo(id){  // scroll below the sticky header
   const el = document.getElementById(id);
   if (el) scrollTo({top: el.getBoundingClientRect().top + scrollY - document.querySelector("header").offsetHeight - 12, behavior:"smooth"});
