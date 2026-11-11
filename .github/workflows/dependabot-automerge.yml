@@ -30,5 +30,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          gh pr merge --merge "$PR_URL"
+          # the repo's "delete head branches" setting doesn't apply to merges made by GITHUB_TOKEN
+          gh pr merge --merge --delete-branch "$PR_URL"
           gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main
