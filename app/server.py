@@ -99,12 +99,17 @@ def public(s):
     return p
 
 
-app = FastAPI(title="Anki Card Maker")
+app = FastAPI(title="Ankiji")
 
 
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.get("/icon.png")
+def icon():
+    return FileResponse(os.path.join(STATIC_DIR, "icon.png"), media_type="image/png")
 
 
 @app.get("/api/settings")

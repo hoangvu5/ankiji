@@ -1,6 +1,6 @@
 # Every push to main builds the Windows app and replaces the "latest" release with a fresh
-# AnkiCardMaker.zip. Download link (for people with access to the repo):
-#   https://github.com/<you>/<repo>/releases/latest/download/AnkiCardMaker.zip
+# Ankiji.zip. Download link (for people with access to the repo):
+#   https://github.com/<you>/<repo>/releases/latest/download/Ankiji.zip
 name: Build app zip
 
 on:
@@ -34,7 +34,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $notes = "Built automatically from commit ${{ github.sha }} on $(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC.`n`nDownload AnkiCardMaker.zip below, extract it, and double-click Anki Card Maker.exe."
+          $notes = "Built automatically from commit ${{ github.sha }} on $(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC.`n`nDownload Ankiji.zip below, extract it, and double-click Ankiji.exe."
           gh release delete latest --cleanup-tag --yes 2>$null
           $global:LASTEXITCODE = 0
-          gh release create latest dist/AnkiCardMaker.zip --title "Anki Card Maker (latest)" --notes $notes --latest
+          gh release create latest dist/Ankiji.zip --title "Ankiji (latest)" --notes $notes --latest

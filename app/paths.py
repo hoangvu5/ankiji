@@ -25,7 +25,7 @@ def _writable(d):
 
 
 if FROZEN and not _writable(DATA_DIR):  # e.g. unzipped into Program Files
-    DATA_DIR = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "AnkiCardMaker")
+    DATA_DIR = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "Ankiji")
     os.makedirs(DATA_DIR, exist_ok=True)
 
 

@@ -1,4 +1,4 @@
-# Anki Card Maker
+# Ankiji
 
 Turns your study material (PDFs, photos, screenshots, Word, PowerPoint or plain text) into Anki flashcards with AI, then puts them straight into your Anki deck without duplicates. It can also add an example sentence from anime to each card: a screenshot, the audio, and the Japanese and English subtitles.
 
@@ -8,13 +8,13 @@ Everything runs on your own computer. Nothing is uploaded anywhere except to the
 
 ## 1. Install (about 2 minutes)
 
-1. Download **AnkiCardMaker.zip**.
+1. Download **Ankiji.zip**.
 2. Right-click the zip, choose **Extract All...**, and extract it into your **Documents** folder. (Don't run it from inside the zip.)
-3. Open the new **Anki Card Maker** folder and double-click **Anki Card Maker.exe**.
+3. Open the new **Ankiji** folder and double-click **Ankiji.exe**.
 4. **Windows may show a blue "Windows protected your PC" box.** That's normal for small apps that aren't from a big company. Click **More info**, then **Run anyway**. You only need to do this once.
 5. The app opens in its own window. To stop it, just close the window.
 
-Optional: right-click **Anki Card Maker.exe** and choose **Send to > Desktop (create shortcut)** so you can start it from your desktop.
+Optional: right-click **Ankiji.exe** and choose **Send to > Desktop (create shortcut)** so you can start it from your desktop.
 
 You don't need to install Python or anything else. The app uses Microsoft Edge (already part of Windows) to show its window.
 
@@ -105,7 +105,7 @@ Extract the new zip **over the old folder** (choose "Replace" when Windows asks)
 |---|---|
 | "Anki not connected" | Open Anki. Check the AnkiConnect add-on is installed (code 2055492159) and restart Anki. Click **Recheck**. |
 | Window doesn't open | Wait 10 seconds and try again. If it still fails, restart the computer. |
-| Antivirus deletes or blocks the .exe | Some antivirus programs distrust small unsigned apps. Add the **Anki Card Maker** folder as an exception. |
+| Antivirus deletes or blocks the .exe | Some antivirus programs distrust small unsigned apps. Add the **Ankiji** folder as an exception. |
 | AI says "not installed" or "not signed in" | Follow that AI's steps in the **Setup guide** tab, then click **Check again**. |
 | "Nadeshiko's request limit was reached" | You used this month's 5,000 searches. It resets next month. |
 
@@ -114,6 +114,6 @@ Extract the new zip **over the old folder** (choose "Replace" when Windows asks)
 ## For the developer
 
 - **Run from source:** double-click `start.bat` (creates `.venv`, installs `requirements.txt`, runs `run.py`). `run.py --browser` opens a normal browser tab instead of the app window.
-- **Build the shareable zip:** double-click `build.bat`. It produces `dist\AnkiCardMaker.zip` (about 60 MB). The build never includes `settings.json`, `nadeshiko_cache.json`, the window profile or the log.
+- **Build the shareable zip:** double-click `build.bat`. It produces `dist\Ankiji.zip` (about 60 MB). The build never includes `settings.json`, `nadeshiko_cache.json`, the window profile or the log.
 - The handwriting card uses KanjiCanvas (c) 2019 Dominik Klein, MIT License, github.com/asdfjkl/kanjicanvas. It ships as `app/static/_kanjicanvas.js`.
-- Port **8770** is the app, **8765** is AnkiConnect. Set `ANKI_CARD_MAKER_PORT` to run a second copy on another port for testing.
+- Port **8770** is the app, **8765** is AnkiConnect. Set `ANKIJI_PORT` to run a second copy on another port for testing.

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b8a74"/>
+      <stop offset="1" stop-color="#245a4c"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0b241d" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+
+  <!-- card stack: back cards fan out behind the front card -->
+  <rect x="150" y="104" width="240" height="300" rx="30" fill="#9cc9ba" transform="rotate(12 270 254)"/>
+  <rect x="140" y="110" width="240" height="300" rx="30" fill="#cfe6de" transform="rotate(5 260 260)"/>
+  <rect x="122" y="118" width="240" height="300" rx="30" fill="#ffffff" filter="url(#shadow)"/>
+
+  <!-- 字 = "character", the same in Japanese and Chinese -->
+  <text x="242" y="312" text-anchor="middle" font-size="168" font-weight="700"
+        font-family="'Yu Gothic UI','Yu Gothic','Meiryo','Microsoft YaHei','Noto Sans CJK JP',sans-serif"
+        fill="#245a4c">字</text>
+
+  <!-- answer line under the character, like the back of a flashcard -->
+  <rect x="172" y="350" width="140" height="14" rx="7" fill="#245a4c" opacity="0.25"/>
+
+  <!-- AI sparkle -->
+  <path d="M398 92 C404 128 416 140 452 146 C416 152 404 164 398 200 C392 164 380 152 344 146 C380 140 392 128 398 92 Z"
+        fill="#ffd166"/>
+  <path d="M446 214 C449 230 454 235 470 238 C454 241 449 246 446 262 C443 246 438 241 422 238 C438 235 443 230 446 214 Z"
+        fill="#ffd166" opacity="0.85"/>
+</svg>

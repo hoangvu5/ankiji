@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anki Card Maker</title>
+<title>Ankiji</title>
+<link rel="icon" type="image/png" href="/icon.png">
 <script>
   // apply the saved theme before the page paints, so there's no flash
   try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
@@ -164,7 +165,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 </head>
 <body>
 <header>
-  <h1>Anki Card Maker</h1>
+  <h1>Ankiji</h1>
   <nav class="tabs" role="tablist" aria-label="Pages">
     <button type="button" role="tab" data-tab="cardsTab">Create cards</button>
     <button type="button" role="tab" data-tab="nadeshikoTab">Nadeshiko</button>
@@ -383,7 +384,6 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Click <b>Sync</b> (top right of the main Anki window) and log in with the same email and password.</li>
       <li>On your phone install <b>AnkiDroid</b> (Android, free) or <b>AnkiMobile</b> (iPhone), log in with the same account and tap sync.</li>
     </ol>
-    <div class="hint">After adding cards from this app, click <b>Sync</b> in Anki on the computer, then sync on the phone, and the new cards appear there.</div>
   </section>
 
   <section class="card" id="guide-anki">
@@ -396,7 +396,6 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Close Anki and open it again.</li>
       <li>Come back here and click <b>Recheck</b> at the top. It should say <b>Anki connected</b> in green.</li>
     </ol>
-    <div class="hint">Keep Anki open whenever you use this app.</div>
   </section>
 
   <section class="card" id="guide-notetype">
@@ -462,7 +461,6 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     <h2>Claude subscription (via Claude Code)</h2>
     <div class="hint" style="margin:0">Needs a paid Claude plan (Pro or Max).</div>
     <ol>
-      <li>Install <b>Git for Windows</b>: go to <code>git-scm.com</code>, click <b>Download for Windows</b>, open it and click Next until it's done. Keep all the default options.</li>
       <li>Open <b>PowerShell</b>: press the Windows key, type <b>powershell</b>, press Enter.</li>
       <li>Paste this and press Enter:
         <div class="cmd"><code>irm https://claude.ai/install.ps1 | iex</code><button class="small">Copy</button></div></li>

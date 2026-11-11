@@ -1,4 +1,4 @@
-# Anki Card Maker - project notes for AI agents
+# Ankiji - project notes for AI agents
 
 A small local web app that turns study material (PDFs, photos, Word, PowerPoint, text) into Anki flashcards with an AI, then sends them into Anki without duplicates. Built for one user on Windows, mostly for Japanese kanji/vocab study (e.g. Japanese 3rd-grade kanji worksheets with vertical text and furigana).
 
@@ -14,16 +14,16 @@ A small local web app that turns study material (PDFs, photos, Word, PowerPoint,
 ## Run
 
 - Double-click `start.bat` (creates `.venv`, installs `requirements.txt` once, then runs `run.py`).
-- `run.py` starts uvicorn on **http://127.0.0.1:8770** (in a thread, app object imported directly) and opens an **app window**: Edge (or Chrome) with `--app=URL --user-data-dir=<data>/browser-profile`. Its own profile makes the window its own process; when it closes, the server stops. Already running = just open another window. No Edge/Chrome = normal browser and keep serving. `run.py --browser` = normal browser. Env `ANKI_CARD_MAKER_PORT` overrides the port (used for testing the .exe while the user's own copy holds 8770).
+- `run.py` starts uvicorn on **http://127.0.0.1:8770** (in a thread, app object imported directly) and opens an **app window**: Edge (or Chrome) with `--app=URL --user-data-dir=<data>/browser-profile`. Its own profile makes the window its own process; when it closes, the server stops. Already running = just open another window. No Edge/Chrome = normal browser and keep serving. `run.py --browser` = normal browser. Env `ANKIJI_PORT` overrides the port (used for testing the .exe while the user's own copy holds 8770).
 - Windowed .exe has no console: `run.py` redirects stdout/stderr to `app-log.txt` and shows errors in a MessageBox. `llm.py` passes `CREATE_NO_WINDOW` to every subprocess so Codex/Claude don't flash consoles.
 
 ## Packaging (desktop app for a low-tech friend)
 
-- `build.bat` -> PyInstaller **onedir**, `--windowed`, icon `assets/icon.ico`, static files added as `app/static`. Output `dist\Anki Card Maker\Anki Card Maker.exe` and `dist\AnkiCardMaker.zip` (~60 MB). It deletes settings.json, nadeshiko_cache.json, app-log.txt and browser-profile from the dist folder so the user's key never ships.
-- GitHub (private repo): `.github/workflows/release.yml` runs `build.bat` on `windows-latest` (Python 3.14) on every push to main and replaces the release tagged `latest` with the new `AnkiCardMaker.zip`. `build.bat` checks `CI` (set by GitHub): uses plain `python` and a no-op instead of `pause` (NOT `rem`: it would comment out `exit /b 1)` and break parsing). `.gitattributes` forces CRLF for .bat files.
+- `build.bat` -> PyInstaller **onedir**, `--windowed`, icon `assets/icon.ico`, static files added as `app/static`. Output `dist\Ankiji\Ankiji.exe` and `dist\Ankiji.zip` (~60 MB). It deletes settings.json, nadeshiko_cache.json, app-log.txt and browser-profile from the dist folder so the user's key never ships.
+- GitHub (private repo): `.github/workflows/release.yml` runs `build.bat` on `windows-latest` (Python 3.14) on every push to main and replaces the release tagged `latest` with the new `Ankiji.zip`. `build.bat` checks `CI` (set by GitHub): uses plain `python` and a no-op instead of `pause` (NOT `rem`: it would comment out `exit /b 1)` and break parsing). `.gitattributes` forces CRLF for .bat files.
 - `.gitignore` keeps out everything personal: settings.json (API keys, MAL username), nadeshiko_cache.json, browser-profile/, logs, .venv, build/, dist/, .claude/.
 - Chose Edge app mode over pywebview: no extra deps (pythonnet on Python 3.14 was a risk), downloads (TSV) and clipboard just work.
-- `app/paths.py`: `STATIC_DIR` (bundle, `sys._MEIPASS`) and `DATA_DIR` (next to the .exe, or the project root from source; falls back to `%LOCALAPPDATA%\AnkiCardMaker` if the folder isn't writable). All runtime files go through `paths.data()`.
+- `app/paths.py`: `STATIC_DIR` (bundle, `sys._MEIPASS`) and `DATA_DIR` (next to the .exe, or the project root from source; falls back to `%LOCALAPPDATA%\Ankiji` if the folder isn't writable). All runtime files go through `paths.data()`.
 - Tested: exe starts, serves fresh settings, closing the window ends the process. Not yet tested on another PC (SmartScreen / antivirus warnings expected, README covers them).
 - Port 8765 is reserved for AnkiConnect, so never use it for the app.
 - Reinstall deps after changing requirements: delete `.venv\installed.flag` and run `start.bat`.
@@ -44,7 +44,7 @@ app/paths.py         bundle vs data folders (source run and packaged .exe)
 app/prompts.py       built-in card prompts (the user's Japanese one, and a Mandarin one for a Vietnamese HSK 1-2 learner)
 app/notetypes.py     ready-made note types (Japanese Card Format, Mandarin Card Format): fields, templates, CSS, one-click create
 app/static/_kanjicanvas.js  KanjiCanvas handwriting lib + patterns (MIT), copied from the user's Anki media folder
-build.bat            builds the .exe and dist\AnkiCardMaker.zip
+build.bat            builds the .exe and dist\Ankiji.zip
 assets/icon.ico      app icon (made with Pillow)
 nadeshiko_cache.json created at runtime; every anime already searched, plus the user's ticks
 app/anki.py          AnkiConnect calls, duplicate check, direction logic, TSV export
@@ -74,7 +74,7 @@ Windows CLI detection (`_search_path` in llm.py): PATH is **re-read from the reg
 
 Install notes for the user (Windows):
 - Codex: `irm https://chatgpt.com/codex/install.ps1 | iex` FAILS in old Windows PowerShell 5.1 ("property 'OSArchitecture' cannot be found"). Use `npm install -g @openai/codex` (needs Node.js) or run the installer in PowerShell 7 (`winget install Microsoft.PowerShell`). Then `codex login` -> Sign in with ChatGPT. As of the last session, Codex was still being installed on Windows (earlier it was only installed in WSL, which the app can't see).
-- Claude Code: `irm https://claude.ai/install.ps1 | iex`, then run `claude` once to log in (needs Git for Windows).
+- Claude Code: `irm https://claude.ai/install.ps1 | iex`, then run `claude` once to log in (Git for Windows is optional since 2026).
 
 ## Anki
 
@@ -133,7 +133,7 @@ Install notes for the user (Windows):
 
 ## Setup guide tab
 
-Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnect, card type (one-click or by hand with template copy boxes, and a note that an AI can customize templates), OpenAI API, ChatGPT (Node.js + `npm install -g @openai/codex` in **Command Prompt**, avoiding PowerShell's npm.ps1 execution-policy block), Claude (Git for Windows + `irm https://claude.ai/install.ps1 | iex`), Nadeshiko. Copy buttons on commands. Section 4 has "Open the step-by-step setup guide for this AI", which jumps to the selected provider's section.
+Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnect, card type (one-click or by hand with template copy boxes, and a note that an AI can customize templates), OpenAI API, ChatGPT (Node.js + `npm install -g @openai/codex` in **Command Prompt**, avoiding PowerShell's npm.ps1 execution-policy block), Claude (`irm https://claude.ai/install.ps1 | iex`, no Git needed), Nadeshiko. Copy buttons on commands. Section 4 shows "<AI> setup guide" next to Check again when the AI is not ready, which jumps to the selected provider's section.
 
 ## API routes
 
