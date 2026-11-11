@@ -63,7 +63,7 @@ The two subscription options need a couple of programs installed first. Open the
 
 1. **Material:** drop files in, or paste a screenshot with Ctrl+V. For worksheets, scans or vertical Japanese, set **How to read PDFs** to **Always as page images**.
 2. **Card prompt:** pick one from the dropdown. Two come built in: **Japanese** (JLPT, with Vietnamese meanings) and **Mandarin** (HSK 1-2, for Vietnamese speakers). Edit them freely, or click **New** to make your own (it starts as a copy of the current one). Changes save automatically.
-3. **Where the cards go:** pick your deck and note type.
+3. **Destination:** pick your deck and note type.
 4. Click **Generate cards**.
 5. **Review:** edit anything in the table. Cards already in Anki are marked and unticked automatically.
 6. Optional: click **Fill media** (see below).
@@ -92,7 +92,7 @@ Notes:
 ## 5. Good to know
 
 - **Duplicates:** Anki treats a card as a duplicate when its first field matches an existing card of the same note type. You can choose "this deck" or "whole collection".
-- **Card direction:** leave it on **As generated**. If your note type makes two cards per note, you get both directions automatically.
+- **Card direction:** leave it on **Use the note type's own cards**. If your note type makes two cards per note, you get both directions automatically.
 - **Your settings** (prompts, deck, AI choice, keys) are saved in `settings.json` in the app folder, on this computer only. **Reset settings** at the top clears any of them.
 
 ## 6. Updating to a new version

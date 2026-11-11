@@ -83,7 +83,7 @@ Install notes for the user (Windows):
 - **Deck picker is a `<select>`** of all decks plus "+ New deck..." (shows a text input). It used to be an input+datalist, which hid other decks because the browser filters suggestions by the typed value. New decks are created with `createDeck` on send.
 - **Duplicates**: Anki compares the **first field** within the same note type. Check uses `canAddNotesWithErrorDetail` (fallback `canAddNotes`); add uses `addNote` one by one with `allowDuplicate: false` and `duplicateScope` = deck (with `duplicateScopeOptions.deckName`) or collection (user choice). Within-batch repeats are flagged too. Duplicates are unticked automatically and re-checked whenever deck / note type / direction / scope changes and after sending.
 - **Card direction** (important, the user asked what it means): which cards Anki creates is decided by the note type's templates, not by the app.
-  - `forward` "As generated" = default and recommended. The user's own custom note type already has 2 templates (both directions), so this gives both cards.
+  - `forward` "Use the note type's own cards" = default and recommended. The user's own custom note type already has 2 templates (both directions), so this gives both cards.
   - `backward` "Swap the first two fields" = swaps field 1 and 2 on send.
   - `both` "Add reverse cards (Basic only)" = sends "Basic" notes as "Basic (and reversed card)". Disabled in the UI when the selected note type has 2+ templates.
 - Without AnkiConnect, the user types the note type name and its field names (comma-separated), and gets a TSV with headers `#separator:tab`, `#html:true`, `#notetype:`, `#deck:`, `#tags column:N`. Tell them to set **Existing notes = Preserve** in File > Import.
@@ -96,7 +96,7 @@ Install notes for the user (Windows):
 
 ## UI
 
-- Single page, sections: 1 Material, 2 Card prompt, 3 Where the cards go, 4 Make the cards, 5 Review then send. AI settings in a slide-out drawer.
+- Single page, sections: 1 Material, 2 Prompt, 3 Destination, 4 Generation, 5 Review, then send. The "setup guide for this AI" link under the AI dropdown only shows when the provider check fails. AI settings in a slide-out drawer.
 - **Theme**: System (default, follows Windows) / Light / Dark, via CSS variables on `:root`, dark under `prefers-color-scheme` guarded by `:root:not([data-theme="light"])` and under `:root[data-theme="dark"]`. Saved in settings and cached in localStorage (applied in `<head>` to avoid a flash).
 - Paste a screenshot anywhere (Ctrl+V) to add it as material.
 - Generating again asks whether to append to or replace the cards in the review list.

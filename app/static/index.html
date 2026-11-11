@@ -213,7 +213,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     </section>
 
     <section class="card">
-      <h2><span class="step">2</span> How the cards should look</h2>
+      <h2><span class="step">2</span> Prompt</h2>
       <div class="row" style="align-items:baseline">
         <label for="promptSel" style="flex:1">Card prompt</label>
         <span id="promptSaved" class="saved" style="flex:0 0 auto"></span>
@@ -224,18 +224,19 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <button id="promptRename" class="small">Rename</button>
         <button id="promptDelete" class="small">Delete</button>
       </div>
-      <textarea id="prompt" rows="8" aria-label="Prompt text" style="margin-top:8px"></textarea>      <label for="extra">Extra instructions for this batch only (optional, not saved)</label>
-      <textarea id="extra" rows="2" placeholder="e.g. only the kanji on page 1, add 3 example words each"></textarea>
+      <textarea id="prompt" rows="8" aria-label="Prompt text" style="margin-top:8px"></textarea>
+      <label for="extra">Extra instructions for this batch only (optional)</label>
+      <textarea id="extra" rows="2"></textarea>
     </section>
   </div>
 
   <!-- RIGHT: target + generate -->
   <div>
     <section class="card">
-      <h2><span class="step">3</span> Where the cards go</h2>
+      <h2><span class="step">3</span> Destination</h2>
       <label for="delivery">Send cards by</label>
       <select id="delivery">
-        <option value="ankiconnect">Straight into Anki (one click, needs Anki open + AnkiConnect)</option>
+        <option value="ankiconnect">Straight into Anki</option>
         <option value="tsv">Download an import file (File > Import in Anki)</option>
       </select>
       <div id="deliveryHint" class="hint"></div>
@@ -256,7 +257,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 
       <label for="direction">Card direction</label>
       <select id="direction">
-        <option value="forward">As generated (use the note type's own cards)</option>
+        <option value="forward">Use the note type's own cards</option>
         <option value="backward">Swap the first two fields</option>
         <option value="both">Add reverse cards (Basic only)</option>
       </select>
@@ -270,7 +271,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     </section>
 
     <section class="card">
-      <h2><span class="step">4</span> Make the cards</h2>
+      <h2><span class="step">4</span> Generation</h2>
       <label for="provider">AI</label>
       <select id="provider">
         <option value="openai">OpenAI API (pay per use)</option>
@@ -278,7 +279,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <option value="claude">Claude subscription (via Claude Code)</option>
       </select>
       <div class="provider-detail"><span id="providerStatus" class="hint" style="margin:0"></span><button class="link" id="providerRecheck" style="font-size:13px">Check again</button></div>
-      <div class="hint">Not set up yet? <button class="link" id="providerGuide" style="font-size:12.5px">Open the step-by-step setup guide for this AI</button></div>
+      <div class="hint" id="providerGuideBox" hidden>Not set up yet? <button class="link" id="providerGuide" style="font-size:12.5px">Open the step-by-step setup guide for this AI</button></div>
       <div style="margin-top:14px"><button id="generate" class="primary big">Generate cards</button></div>
       <div id="genStatus"></div>
     </section>
@@ -413,7 +414,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
           <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin card type</button>
         </div>
         <div id="ntStatus"></div></li>
-      <li>On the <b>Make cards</b> tab, in <b>3 Where the cards go</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 How the cards should look</b>.</li>
+      <li>On the <b>Make cards</b> tab, in <b>3 Destination</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 Prompt</b>.</li>
     </ol>
     <div class="hint">Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji). Example sentences from Nadeshiko are Japanese only, so the Mandarin Media field stays empty unless you add something yourself.</div>
 
@@ -677,12 +678,14 @@ $("#resetGo").onclick = async () => {
 async function checkProvider(){
   const p = $("#provider").value, el = $("#providerStatus");
   el.textContent = "Checking..."; el.style.color = "";
+  $("#providerGuideBox").hidden = true;
   try {
     const r = await api(`/api/provider/check?provider=${p}`);
     if ($("#provider").value !== p) return; // user switched again meanwhile
     el.textContent = (r.ok ? "✓ " : "⚠ ") + r.detail;
     el.style.color = r.ok ? "var(--accent)" : "var(--warn)";
-  } catch(e){ el.textContent = e.message; }
+    $("#providerGuideBox").hidden = r.ok;
+  } catch(e){ el.textContent = e.message; $("#providerGuideBox").hidden = false; }
 }
 $("#provider").addEventListener("change", checkProvider);
 $("#providerRecheck").onclick = checkProvider;
@@ -773,7 +776,7 @@ function updateHints(){
   $("#directionHint").textContent = hint;
   $("#deliveryHint").innerHTML = $("#delivery").value === "ankiconnect"
     ? (state.anki.ok ? "Anki is open and AnkiConnect is working." :
-       "Anki isn't reachable. Open Anki desktop. First time? In Anki go to <b>Tools > Add-ons > Get Add-ons</b>, enter code <code>2055492159</code>, restart Anki, then click Recheck at the top.")
+       'Anki isn\'t connected. <button class="link" data-guide="guide-anki">How to connect Anki</button>')
     : "You'll get a .txt file. In Anki use <b>File > Import</b>; the deck, note type and tags are pre-filled. Set <b>Existing notes</b> to <b>Preserve</b> so duplicates are skipped.";
   renderSendButton();
 }
@@ -1105,6 +1108,11 @@ function jumpTo(id){  // scroll below the sticky header
   if (el) scrollTo({top: el.getBoundingClientRect().top + scrollY - document.querySelector("header").offsetHeight - 12, behavior:"smooth"});
 }
 $("#providerGuide").onclick = () => { showTab("guideTab"); jumpTo("guide-" + $("#provider").value); };
+// links into the guide inside text that is re-rendered (hints), so delegated
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-guide]");
+  if (b) { showTab("guideTab"); jumpTo(b.dataset.guide); }
+});
 document.querySelectorAll("#guideTab [data-jump]").forEach(b => b.onclick = () => jumpTo(b.dataset.jump));
 async function createNotetype(kind){
   notice("#ntStatus", "good", '<span class="spin"></span> Creating...');
