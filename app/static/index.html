@@ -196,7 +196,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <h2><span class="step">1</span> Material</h2>
       <div id="drop" class="drop">
         <b>Drop files here</b> or click to choose<br>
-        <span class="hint">PDF, photos/screenshots, Word, PowerPoint, text. You can also paste a screenshot with Ctrl+V.</span>
+        <span class="hint">.pdf, .docx, .pptx, .txt, .md, .csv, .srt, .png, .jpg, .webp, .heic. Paste a screenshot with Ctrl+V.</span>
         <input id="fileInput" type="file" multiple hidden>
       </div>
       <label for="pdfMode">How to read PDFs</label>
@@ -207,7 +207,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       </select>
       <div id="extractStatus"></div>
       <div id="thumbs" class="thumbs"></div>
-      <label for="material">Text (extracted text appears here; you can edit it or paste more)</label>
+      <label for="material">Text</label>
       <textarea id="material" rows="9" placeholder="Paste notes here, or drop files above."></textarea>
       <div style="margin-top:8px"><button id="clearMaterial">Clear all material</button></div>
     </section>
@@ -224,9 +224,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <button id="promptRename" class="small">Rename</button>
         <button id="promptDelete" class="small">Delete</button>
       </div>
-      <textarea id="prompt" rows="8" aria-label="Prompt text" style="margin-top:8px"></textarea>
-      <div class="hint">Pick a prompt above, or make your own with <b>New</b>. Changes save automatically.</div>
-      <label for="extra">Extra instructions for this batch only (optional, not saved)</label>
+      <textarea id="prompt" rows="8" aria-label="Prompt text" style="margin-top:8px"></textarea>      <label for="extra">Extra instructions for this batch only (optional, not saved)</label>
       <textarea id="extra" rows="2" placeholder="e.g. only the kanji on page 1, add 3 example words each"></textarea>
     </section>
   </div>

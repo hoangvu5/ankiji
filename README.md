@@ -62,7 +62,7 @@ The two subscription options need a couple of programs installed first. Open the
 ## 3. Make cards
 
 1. **Material:** drop files in, or paste a screenshot with Ctrl+V. For worksheets, scans or vertical Japanese, set **How to read PDFs** to **Always as page images**.
-2. **Card prompt:** pick one from the dropdown. Two come built in: **Japanese (JLPT, with Vietnamese)** and **Mandarin (HSK 1-2, Vietnamese)**. Edit them freely, or click **New** to make your own (it starts as a copy of the current one). Changes save automatically.
+2. **Card prompt:** pick one from the dropdown. Two come built in: **Japanese** (JLPT, with Vietnamese meanings) and **Mandarin** (HSK 1-2, for Vietnamese speakers). Edit them freely, or click **New** to make your own (it starts as a copy of the current one). Changes save automatically.
 3. **Where the cards go:** pick your deck and note type.
 4. Click **Generate cards**.
 5. **Review:** edit anything in the table. Cards already in Anki are marked and unticked automatically.
