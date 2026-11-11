@@ -35,7 +35,7 @@ The app has a **Setup guide** tab with every step, including buttons that copy e
 Keep Anki open whenever you use the app.
 
 ### Set up the card type
-In the **Setup guide** tab, under **Set up the card type**, click **Create the Japanese card type** or **Create the Mandarin card type** (Anki must be open). This adds a note type with the fields **Front**, **Back** and **Media**, its card designs and styling. Then choose it as **Note type** on the Make cards tab.
+In the **Setup guide** tab, under **Set up the card type**, click **Create the Japanese card type** or **Create the Mandarin card type** (Anki must be open). This adds a note type with the fields **Front**, **Back** and **Media**, its card designs and styling. Then choose it as **Note type** on the Create cards tab.
 
 - **Japanese Card Format**: card 1 shows the word (tap it to see the reading), card 2 shows the meaning and you handwrite the kanji on screen.
 - **Mandarin Card Format**: card 1 the same with pinyin, card 2 shows the meaning and you recall the characters.
@@ -59,7 +59,7 @@ The two subscription options need a couple of programs installed first. Open the
 2. In the app's **Nadeshiko** tab, paste the key.
 3. Optional: paste your MyAnimeList profile link (the list must be public) and click **Update from MyAnimeList**. Then sentences come from anime you've watched first.
 
-## 3. Make cards
+## 3. Create cards
 
 1. **Material:** drop files in, or paste a screenshot with Ctrl+V. For worksheets, scans or vertical Japanese, set **How to read PDFs** to **Always as page images**.
 2. **Card prompt:** pick one from the dropdown. Two come built in: **Japanese** (JLPT, with Vietnamese meanings) and **Mandarin** (HSK 1-2, for Vietnamese speakers). Edit them freely, or click **New** to make your own (it starts as a copy of the current one). Changes save automatically.

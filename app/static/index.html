@@ -166,7 +166,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 <header>
   <h1>Anki Card Maker</h1>
   <nav class="tabs" role="tablist" aria-label="Pages">
-    <button type="button" role="tab" data-tab="cardsTab">Make cards</button>
+    <button type="button" role="tab" data-tab="cardsTab">Create cards</button>
     <button type="button" role="tab" data-tab="nadeshikoTab">Nadeshiko</button>
     <button type="button" role="tab" data-tab="guideTab">Setup guide</button>
   </nav>
@@ -298,7 +298,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </div>
   <div class="mediabar" id="mediaBar">
     <div class="head">
-      <b>Example sentence from Nadeshiko (image, audio, Japanese and English subtitles)</b>
+      <b>Media from Nadeshiko</b>
       <button id="mediaFill" class="primary">Fill media</button>
     </div>
     <div id="mediaInfo" class="hint"></div>
@@ -315,8 +315,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <label><input type="checkbox" value="YOUTUBE"> YouTube</label>
         <label><input type="checkbox" value="AUDIOBOOK"> Audiobook</label>
       </div>
-      <label class="inline"><input type="checkbox" id="mediaFallback"> If the word isn't in my anime, use other titles</label>
-      <div class="hint">"My anime" are the ones ticked in the Nadeshiko tab. Each card uses 1 to 4 Nadeshiko searches (5,000 a month).</div>
+      <div style="margin:6px 0;font-size:14px;font-weight:500"><label for="mediaFallback" style="display:inline;margin:0;font-weight:500"><input type="checkbox" id="mediaFallback" style="vertical-align:-2px;margin:0 6px 0 0">If the word isn't in</label> <button class="link" data-goto="nadeshikoTab">my anime</button>, use other titles</div>
     </details>
     <div id="mediaStatus"></div>
   </div>
@@ -328,10 +327,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 <main id="nadeshikoTab" hidden>
   <section class="card">
     <h2>Find my anime on Nadeshiko</h2>
-    <div class="hint" style="margin:0">Reads Watching and Completed from MyAnimeList. Results are saved on this computer, so Nadeshiko is only searched for anime that are new on your list.</div>
     <label for="malProfile">MyAnimeList profile link</label>
     <input id="malProfile" type="text" placeholder="https://myanimelist.net/profile/YourName" autocomplete="off">
-    <div class="hint">Your anime list must be public. No MAL API key needed.</div>
+    <div class="hint">Your anime list must be public. Reads Watching and Completed from MyAnimeList.</div>
     <label for="nadeKey">Nadeshiko API key</label>
     <input id="nadeKey" type="password" placeholder="Paste your key" autocomplete="off">
     <div class="hint" id="nadeKeyHint"><button class="link" data-guide="guide-nadeshiko">Nadeshiko setup guide</button></div>
@@ -349,7 +347,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </section>
 
   <section class="card" id="nadeList" hidden>
-    <h2>Your anime</h2>
+    <h2>Anime</h2>
     <div class="toolbar"><span class="count" id="nadeCount"></span></div>
     <div class="tablewrap"><table id="nadeTable"></table></div>
   </section>
@@ -413,7 +411,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
           <button id="ntMandarin" class="primary" style="flex:0 0 auto">Create the Mandarin card type</button>
         </div>
         <div id="ntStatus"></div></li>
-      <li>On the <b>Make cards</b> tab, in <b>3 Destination</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 Prompt</b>.</li>
+      <li>On the <b>Create cards</b> tab, in <b>3 Destination</b>, choose it as the <b>Note type</b> (<b>Japanese Card Format</b> or <b>Mandarin Card Format</b>). Also pick the matching prompt in <b>2 Prompt</b>.</li>
     </ol>
     <div class="hint">Japanese: card 2 lets you handwrite the kanji on screen and checks it. Mandarin: card 2 asks you to recall the characters (handwriting checking only knows Japanese kanji). Example sentences from Nadeshiko are Japanese only, so the Mandarin Media field stays empty unless you add something yourself.</div>
 
@@ -439,7 +437,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Open <code>platform.openai.com/api-keys</code> and click <b>Create new secret key</b>. Give it any name and click Create.</li>
       <li>Click <b>Copy</b>. The key starts with <code>sk-</code>. You can only see it once, so paste it in the next step right away.</li>
       <li>In this app click <b>AI settings</b> (top right), paste the key into <b>API key</b>, then click <b>Save AI settings</b>.</li>
-      <li>On the <b>Make cards</b> tab, set <b>AI</b> to <b>OpenAI API</b>. It should say <b>API key set</b>.</li>
+      <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>OpenAI API</b>. It should say <b>API key set</b>.</li>
     </ol>
   </section>
 
@@ -455,7 +453,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <div class="cmd"><code>codex login</code><button class="small">Copy</button></div>
         A browser window opens. Choose <b>Sign in with ChatGPT</b> and log in with your ChatGPT account.</li>
       <li>When it says you're signed in, close the Command Prompt.</li>
-      <li>On the <b>Make cards</b> tab, set <b>AI</b> to <b>ChatGPT subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
+      <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>ChatGPT subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
     </ol>
     <div class="hint"><b>"npm is not recognized"?</b> Close the Command Prompt and open a new one after installing Node.js. If it still fails, restart the computer.</div>
   </section>
@@ -472,7 +470,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
         <div class="cmd"><code>claude</code><button class="small">Copy</button></div>
         Follow the questions. When asked how to log in, choose your <b>Claude account</b> (subscription) and log in in the browser.</li>
       <li>When you see Claude's chat screen, type <code>/exit</code> and press Enter.</li>
-      <li>On the <b>Make cards</b> tab, set <b>AI</b> to <b>Claude subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
+      <li>On the <b>Create cards</b> tab, set <b>AI</b> to <b>Claude subscription</b> and click <b>Check again</b>. It should say <b>Ready</b>.</li>
     </ol>
   </section>
 
@@ -779,7 +777,7 @@ function updateHints(){
   if (multi && d === "both") { $("#direction").value = "forward"; return updateHints(); }
   let hint;
   if (d === "forward") hint = multi
-    ? `Recommended. "${m}" already makes ${state.templates.length} cards per note (${state.templates.join(", ")}), so you get both directions automatically.`
+    ? `This note type makes ${state.templates.length} cards per note.`
     : "Each note is added as generated. Anki makes whatever cards the note type defines.";
   else if (d === "backward") hint = "Puts field 2 into field 1 and field 1 into field 2 when sending. Only useful if the AI filled them the wrong way round. Duplicates are then checked on the new first field.";
   else hint = m === "Basic" ? 'Sends as "Basic (and reversed card)" so Anki makes a card for each direction.'
@@ -984,13 +982,12 @@ function renderMediaBar(){
   if (!info.has_key) msg = 'Add your Nadeshiko API key in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button> first.';
   else if (!target) msg = 'This note type has no "Media" field. Pick the field to fill under Options.';
   else {
-    msg = `Fills the <code>${esc(target)}</code> field. `;
-    msg += info.my_anime ? `Looks in your ${info.my_anime} anime from the Nadeshiko tab first.`
+    msg = info.my_anime ? ""
       : 'No anime are ticked in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button>, so all titles are searched.';
     if ($("#delivery").value === "tsv") msg += " Images and audio only go into Anki with <b>Straight into Anki</b>. An import file keeps just the text.";
   }
-  $("#mediaInfo").innerHTML = msg;
-  $("#mediaInfo").querySelectorAll("[data-goto]").forEach(b => b.onclick = () => showTab(b.dataset.goto));
+  $("#mediaInfo").innerHTML = msg.trim();
+  $("#mediaInfo").hidden = !msg.trim();
 }
 
 function mediaCell(c){
@@ -1119,8 +1116,10 @@ function jumpTo(id){  // scroll below the sticky header
   if (el) scrollTo({top: el.getBoundingClientRect().top + scrollY - document.querySelector("header").offsetHeight - 12, behavior:"smooth"});
 }
 $("#providerGuide").onclick = () => { showTab("guideTab"); jumpTo("guide-" + $("#provider").value); };
-// links into the guide inside text that is re-rendered (hints), so delegated
+// links into the guide or another tab inside text that is re-rendered (hints), so delegated
 document.addEventListener("click", e => {
+  const t = e.target.closest("[data-goto]");
+  if (t) { e.preventDefault(); showTab(t.dataset.goto); scrollTo(0, 0); return; }
   const b = e.target.closest("[data-guide]");
   if (b) { $("#drawer").classList.remove("open"); showTab("guideTab"); jumpTo(b.dataset.guide); }
 });
@@ -1132,7 +1131,7 @@ async function createNotetype(kind){
     if (!state.anki.ok) throw new Error("Anki isn't connected. Open Anki (with AnkiConnect, see Connect Anki above), then try again.");
     const r = await post("/api/anki/create-notetype", {kind});
     await refreshAnki();
-    notice("#ntStatus", "good", esc(r.message) + ` Now choose <b>${esc(r.name)}</b> as the Note type on the Make cards tab.`);
+    notice("#ntStatus", "good", esc(r.message) + ` Now choose <b>${esc(r.name)}</b> as the Note type on the Create cards tab.`);
   } catch (e) { notice("#ntStatus", "bad", esc(e.message)); }
 }
 $("#ntJapanese").onclick = () => createNotetype("japanese");
@@ -1181,7 +1180,7 @@ function renderNadeRows(v){
   const drawn = JSON.stringify(v.rows);
   if (drawn === nadeRowsDrawn) return;
   nadeRowsDrawn = drawn;
-  $("#nadeTable").innerHTML = `<tr><th>Use</th><th>Your anime</th><th>List</th><th>Nadeshiko match</th><th></th></tr>` + v.rows.map(r => `<tr data-id="${r.id}">
+  $("#nadeTable").innerHTML = `<tr><th>Use</th><th>Anime</th><th>List</th><th>Nadeshiko match</th><th></th></tr>` + v.rows.map(r => `<tr data-id="${r.id}">
     <td><input type="checkbox" class="nadeUse" aria-label="Use ${esc(r.title)}" ${r.use?"checked":""} ${r.match?"":"disabled"}></td>
     <td>${esc(r.title_en || r.title)}${r.title_en && r.title_en !== r.title ? `<span class="sub">${esc(r.title)}</span>` : ""}</td>
     <td>${r.status === "watching" ? "Watching" : "Completed"}</td>
@@ -1206,7 +1205,7 @@ function renderNade(v){
   if (!has) return;
   $("#nadeJson").value = v.json;
   $("#nadeSelected").textContent = `${v.selected} anime selected` + (v.over_limit ? ` (only the first 100 are used)` : "");
-  $("#nadeCount").textContent = `${v.rows.length} on your list · ${c.matched} matched · ${c.check} to check · ${c.missing} not on Nadeshiko` + (c.pending ? ` · ${c.pending} not searched yet` : "") + (v.last_sync ? ` · last updated ${v.last_sync.replace("T"," ")}` : "");
+  $("#nadeCount").textContent = `${v.rows.length} on your list · ${c.matched} matched · ${c.check} to check · ${c.missing} not on Nadeshiko` + (c.pending ? ` · ${c.pending} not searched yet` : "");
   renderNadeRows(v);
   $("#nadeTable").querySelectorAll(".nadeAgain").forEach(b => b.disabled = busy);
 }
