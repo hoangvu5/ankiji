@@ -842,18 +842,40 @@ function renderThumbs(){
 $("#clearMaterial").onclick = () => { state.images = []; renderThumbs(); $("#material").value = ""; notice("#extractStatus"); };
 
 // ---------- generate ----------
+// While generating, the same button cancels: the server stops the AI, the page drops the request.
+function setGenerating(on){
+  const btn = $("#generate");
+  btn.textContent = on ? "Cancel" : "Generate cards";
+  btn.classList.toggle("primary", !on);
+  btn.classList.toggle("danger", on);
+}
+async function cancelGenerate(){
+  const g = state.gen;
+  if (!g) return;
+  state.gen = null;
+  g.stopTicking();
+  g.controller.abort();
+  setGenerating(false);
+  notice("#genStatus", "warn", "Cancelled. No cards were added.");
+  try { await post("/api/generate/cancel", {job_id: g.jobId}); } catch (e) {}
+}
 $("#generate").onclick = async () => {
+  if (state.gen) return cancelGenerate();
   const text = $("#material").value.trim();
   if (!text && !state.images.length) return notice("#genStatus", "warn", "Add some material first.");
   let instructions = $("#prompt").value.trim();
   if ($("#extra").value.trim()) instructions += "\n\nExtra instructions for this batch:\n" + $("#extra").value.trim();
-  const btn = $("#generate"); btn.disabled = true;
   const t0 = Date.now();
   const tick = setInterval(() => notice("#genStatus", "good", `<span class="spin"></span> Making cards... ${Math.round((Date.now()-t0)/1000)}s` +
      ($("#provider").value !== "openai" ? " (subscription options can take a minute or two)" : "")), 500);
+  const g = state.gen = {jobId: crypto.randomUUID(), controller: new AbortController(), stopTicking: () => clearInterval(tick)};
+  setGenerating(true);
   try {
-    const r = await post("/api/generate", { provider:$("#provider").value, fields:state.fields, instructions, text,
-      image_ids: state.images.map(i => i.id), media_field: pickMediaField(state.fields) });
+    const r = await api("/api/generate", {method: "POST", headers: {"Content-Type": "application/json"}, signal: g.controller.signal,
+      body: JSON.stringify({ job_id: g.jobId, provider:$("#provider").value, fields:state.fields, instructions, text,
+        image_ids: state.images.map(i => i.id), media_field: pickMediaField(state.fields) })});
+    if (state.gen !== g) return;  // cancelled while the answer was arriving
+    state.gen = null; setGenerating(false);
     clearInterval(tick);
     if (!r.cards.length){ notice("#genStatus", "warn", "The AI didn't return any cards. Try adjusting the prompt."); return; }
     state.cards = state.cards.length && confirm(`Add these ${r.cards.length} cards to the ${state.cards.length} already in the review list?\n(Cancel = replace them)`)
@@ -864,8 +886,12 @@ $("#generate").onclick = async () => {
     $("#reviewCard").style.display = "";
     await runCheck();
     $("#reviewCard").scrollIntoView({behavior:"smooth"});
-  } catch(e){ clearInterval(tick); notice("#genStatus", "bad", esc(e.message)); }
-  finally { btn.disabled = false; }
+  } catch(e){
+    clearInterval(tick);
+    if (state.gen !== g) return;  // cancelled: cancelGenerate already said so
+    state.gen = null; setGenerating(false);
+    notice("#genStatus", "bad", esc(e.message));
+  }
 };
 
 // ---------- review ----------

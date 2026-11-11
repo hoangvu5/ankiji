@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 TEXT_CHUNK = 12000   # characters of text per AI call
@@ -87,13 +88,14 @@ def _parse_json(raw: str) -> dict:
 
 # ---------------- providers ----------------
 
-def _call_openai(settings, fields, instructions, text, images, label):
+def _call_openai(settings, fields, instructions, text, images, label, job):
     from openai import OpenAI
 
     key = settings.get("openai_api_key") or os.environ.get("OPENAI_API_KEY")
     if not key:
         raise RuntimeError("No OpenAI API key. Add it in Settings, or pick a subscription option instead.")
     client = OpenAI(api_key=key)
+    job.add_closer(client.close)  # closing the client aborts a request that is still running
     content = [{"type": "text", "text": _user_text(instructions, text, label)}]
     for img in images:
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img['b64']}", "detail": "high"}})
@@ -147,7 +149,76 @@ def _cli_env(drop):
     return env
 
 
-def _call_codex(settings, fields, instructions, text, images, label):
+class Cancelled(Exception):
+    pass
+
+
+class Job:
+    """One generation the user can stop. Cancelling kills running CLI processes (with their
+    children: codex.cmd starts node, which starts the real binary) and closes API clients."""
+
+    def __init__(self):
+        self.cancelled = False
+        self._lock = threading.Lock()
+        self._procs = set()
+        self._closers = []
+
+    def check(self):
+        if self.cancelled:
+            raise Cancelled()
+
+    def cancel(self):
+        with self._lock:
+            self.cancelled = True
+            procs, closers = list(self._procs), list(self._closers)
+        for p in procs:
+            _kill_tree(p)
+        for close in closers:
+            try:
+                close()
+            except Exception:
+                pass
+
+    def add_closer(self, close):
+        with self._lock:
+            self._closers.append(close)
+            late = self.cancelled
+        if late:
+            close()
+
+    def run(self, cmd, input_text, cwd, env):
+        """subprocess.run that cancel() can stop. Returns (stdout, stderr)."""
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             text=True, encoding="utf-8", errors="replace", cwd=cwd, env=env,
+                             creationflags=NO_WINDOW)
+        with self._lock:
+            self._procs.add(p)
+            late = self.cancelled
+        if late:
+            _kill_tree(p)
+        try:
+            out, err = p.communicate(input_text, timeout=CLI_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            _kill_tree(p)
+            p.communicate()
+            raise RuntimeError(f"The AI took longer than {CLI_TIMEOUT // 60} minutes and was stopped.")
+        finally:
+            with self._lock:
+                self._procs.discard(p)
+        self.check()
+        return out or "", err or ""
+
+
+def _kill_tree(p):
+    if p.poll() is not None:
+        return
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True, creationflags=NO_WINDOW)
+    else:
+        p.kill()
+
+
+def _call_codex(settings, fields, instructions, text, images, label, job):
     exe = _find_cli("codex")
     if not exe:
         raise RuntimeError("Codex CLI not found. Install it, run `codex login`, choose 'Sign in with ChatGPT', then try again.")
@@ -169,18 +240,17 @@ def _call_codex(settings, fields, instructions, text, images, label):
         prompt = _system(fields) + "\n\n" + _user_text(instructions, text, label) + \
             "\nDo not run commands or edit files. Reply only with the JSON object."
         env = _cli_env(("OPENAI_API_KEY", "CODEX_API_KEY"))
-        r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", cwd=tmp, timeout=CLI_TIMEOUT, env=env, creationflags=NO_WINDOW)
+        out, err = job.run(cmd, prompt, tmp, env)
         if os.path.exists(out_path) and os.path.getsize(out_path):
             with open(out_path, encoding="utf-8") as f:
                 return _parse_json(f.read())
-        tail = (r.stderr or r.stdout or "").strip()[-800:]
+        tail = (err or out).strip()[-800:]
         if "login" in tail.lower() or "auth" in tail.lower():
             tail += "\n\nTip: open a terminal and run `codex login`, then choose Sign in with ChatGPT."
         raise RuntimeError("Codex failed:\n" + tail)
 
 
-def _call_claude(settings, fields, instructions, text, images, label):
+def _call_claude(settings, fields, instructions, text, images, label, job):
     exe = _find_cli("claude")
     if not exe:
         raise RuntimeError("Claude Code not found. Install it, run `claude` once and log in with your Claude account, then try again.")
@@ -198,10 +268,9 @@ def _call_claude(settings, fields, instructions, text, images, label):
     # Make sure the subscription login is used, not an API key that happens to be set.
     env = _cli_env(("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"))
     with tempfile.TemporaryDirectory() as tmp:
-        r = subprocess.run(cmd, input=line, capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", cwd=tmp, timeout=CLI_TIMEOUT, env=env, creationflags=NO_WINDOW)
+        out, err = job.run(cmd, line, tmp, env)
     result = None
-    for ln in r.stdout.splitlines():
+    for ln in out.splitlines():
         try:
             ev = json.loads(ln)
         except Exception:
@@ -209,7 +278,7 @@ def _call_claude(settings, fields, instructions, text, images, label):
         if ev.get("type") == "result":
             result = ev
     if not result:
-        raise RuntimeError("Claude Code failed:\n" + (r.stderr or r.stdout).strip()[-800:])
+        raise RuntimeError("Claude Code failed:\n" + (err or out).strip()[-800:])
     if result.get("is_error"):
         raise RuntimeError("Claude Code error: " + str(result.get("result") or result.get("subtype")))
     if isinstance(result.get("structured_output"), dict):
@@ -223,26 +292,25 @@ PROVIDERS = {"openai": _call_openai, "codex": _call_codex, "claude": _call_claud
 def check_provider(provider, settings):
     if provider == "openai":
         ok = bool(settings.get("openai_api_key") or os.environ.get("OPENAI_API_KEY"))
-        return {"ok": ok, "detail": "API key set" if ok else "No API key yet. Add one in AI settings."}
+        return {"ok": ok, "detail": "API key set" if ok else "No API key yet."}
     exe = _find_cli(provider)
     if not exe:
-        hint = {"codex": "Install Codex CLI, then run `codex login` → Sign in with ChatGPT.",
-                "claude": "Install Claude Code, then run `claude` once and log in with your Claude account."}[provider]
-        return {"ok": False, "detail": "Not installed. " + hint}
-    try:
-        v = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=30, env=_cli_env(()), creationflags=NO_WINDOW).stdout.strip()
+        return {"ok": False, "detail": "Not installed yet."}
+    try:  # only proves it runs; the version itself isn't shown
+        subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=30, env=_cli_env(()), creationflags=NO_WINDOW)
     except Exception as e:
-        return {"ok": False, "detail": f"Found at {exe}, but it wouldn't run ({e})."}
+        return {"ok": False, "detail": f"Installed, but it wouldn't run ({e})."}
     if provider == "codex":
         try:
             r = subprocess.run([exe, "login", "status"], capture_output=True, text=True, timeout=30, env=_cli_env(()), creationflags=NO_WINDOW)
             msg = (r.stdout + r.stderr).strip()
             if "not logged in" in msg.lower() or "not signed in" in msg.lower():
-                return {"ok": False, "detail": f"Installed ({v}) but not signed in. Run `codex login` and choose Sign in with ChatGPT."}
-            return {"ok": True, "detail": f"Ready - {v}. {msg.splitlines()[0] if r.returncode == 0 and msg else ''}".strip()}
+                return {"ok": False, "detail": "Not signed in yet."}
+            if r.returncode == 0 and msg:
+                return {"ok": True, "detail": "Ready. " + msg.splitlines()[0].strip()}
         except Exception:
             pass
-    return {"ok": True, "detail": f"Ready - {v}".strip()}
+    return {"ok": True, "detail": "Ready"}
 
 
 # ---------------- orchestration ----------------
@@ -265,9 +333,10 @@ def _chunks(text, size):
     return out
 
 
-def generate(provider, settings, fields, instructions, text, images):
+def generate(provider, settings, fields, instructions, text, images, job=None):
     if provider not in PROVIDERS:
         raise RuntimeError(f"Unknown provider {provider}")
+    job = job or Job()
     parts = [(c, []) for c in _chunks(text, TEXT_CHUNK)]
     parts += [("", images[i : i + IMAGES_PER_CALL]) for i in range(0, len(images), IMAGES_PER_CALL)]
     if not parts:
@@ -275,9 +344,17 @@ def generate(provider, settings, fields, instructions, text, images):
     fn = PROVIDERS[provider]
     labels = [f"part {i + 1} of {len(parts)}" if len(parts) > 1 else "" for i in range(len(parts))]
     workers = 3 if provider == "openai" else 2
+    def one(part, label):
+        job.check()  # parts still waiting for a worker are skipped after a cancel
+        try:
+            return fn(settings, fields, instructions, part[0], part[1], label, job)
+        except Exception:
+            job.check()  # a killed process or closed client shows up as an error: report the cancel instead
+            raise
+
     with ThreadPoolExecutor(workers) as pool:
-        results = list(pool.map(lambda a: fn(settings, fields, instructions, a[0][0], a[0][1], a[1]),
-                                zip(parts, labels)))
+        results = list(pool.map(lambda a: one(*a), zip(parts, labels)))
+    job.check()
     cards, seen = [], set()
     for res in results:
         for c in res.get("cards", []):

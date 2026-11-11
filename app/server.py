@@ -52,6 +52,7 @@ RESET_GROUPS = {
 
 _lock = threading.Lock()
 IMAGES = {}  # id -> {"name", "b64"}
+JOBS = {}    # generation job id -> llm.Job, so a running generation can be cancelled
 
 
 def load_settings():
@@ -181,15 +182,29 @@ def do_generate(data: dict = Body(...)):
     skip = data.get("media_field") if data.get("media_field") in fields[1:] else None
     if skip:
         instructions += f'\n\nAlways leave the field "{skip}" as an empty string. The app fills it later.'
+    job_id = str(data.get("job_id") or uuid.uuid4().hex)
+    job = JOBS[job_id] = llm.Job()
     try:
-        cards = llm.generate(provider, s, fields, instructions, data.get("text", ""), images)
+        cards = llm.generate(provider, s, fields, instructions, data.get("text", ""), images, job)
+    except llm.Cancelled:
+        raise HTTPException(409, "Cancelled.")
     except Exception as e:
         raise HTTPException(400, str(e))
+    finally:
+        JOBS.pop(job_id, None)
     if skip:
         j = fields.index(skip)
         for c in cards:
             c["fields"][j] = ""
     return {"cards": cards, "fields": fields}
+
+
+@app.post("/api/generate/cancel")
+def cancel_generate(data: dict = Body(...)):
+    job = JOBS.get(str(data.get("job_id")))
+    if job:
+        job.cancel()
+    return {"cancelled": bool(job)}
 
 
 @app.get("/api/anki/status")
