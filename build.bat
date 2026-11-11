@@ -12,7 +12,7 @@ if defined CI set "PY=python"
 if not exist ".venv\Scripts\python.exe" (
   %PY% -m venv .venv || (%PAUSE% & exit /b 1)
 )
-".venv\Scripts\python.exe" -m pip install -q -r requirements.txt pyinstaller || (echo Install failed. & %PAUSE% & exit /b 1)
+".venv\Scripts\python.exe" -m pip install -q -r requirements.txt pyinstaller==6.22.3 || (echo Install failed. & %PAUSE% & exit /b 1)
 
 ".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean --windowed ^
   --name "Anki Card Maker" --icon "%cd%\assets\icon.ico" ^
