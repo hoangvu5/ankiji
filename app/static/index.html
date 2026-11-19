@@ -57,7 +57,7 @@ main{max-width:1280px;margin:0 auto;padding:20px 24px 80px}
 .step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--panel);font-size:12px}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
 .hint{font-size:12.5px;color:var(--muted);margin-top:4px}
-input[type=text],input[type=password],select,textarea{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink)}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink)}
 textarea{resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -164,6 +164,17 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 .tbox{display:flex;gap:8px;align-items:flex-start}
 .tbox textarea{font:12px/1.4 var(--mono)}
 .tbox button{flex:0 0 auto}
+/* auto-tag */
+.decklist{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--field)}
+.decklist label{display:flex;gap:8px;align-items:center;font-weight:500;margin:5px 0;cursor:pointer}
+.decklist .sub{color:var(--muted);font-size:12.5px}
+.numrow{gap:16px}
+.numrow > label{flex:0 0 auto;display:flex;gap:8px;align-items:center;font-weight:500;margin:0}
+.numrow input{width:76px}
+.tagcell{display:flex;flex-wrap:wrap;gap:4px;min-width:140px}
+.badge.gone{background:var(--bad-soft);color:var(--bad);text-decoration:line-through}
+#tagTable td{vertical-align:middle}
+#tagTable td.txt{max-width:280px;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -171,6 +182,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <h1>Ankiji</h1>
   <nav class="tabs" role="tablist" aria-label="Pages">
     <button type="button" role="tab" data-tab="cardsTab">Create cards</button>
+    <button type="button" role="tab" data-tab="autotagTab">Auto-tag</button>
     <button type="button" role="tab" data-tab="nadeshikoTab">Nadeshiko</button>
     <button type="button" role="tab" data-tab="guideTab">Setup guide</button>
   </nav>
@@ -326,6 +338,74 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   </div>
   <div class="tablewrap"><table id="table"></table></div>
   <div id="sendStatus"></div>
+</section>
+</main>
+
+<main id="autotagTab" hidden>
+<div class="grid">
+  <div>
+    <section class="card">
+      <h2><span class="step">1</span> Tags the AI may use</h2>
+      <div class="row" style="align-items:baseline">
+        <label for="tagList" style="flex:1">Tag list</label>
+        <span id="tagSaved" class="saved" style="flex:0 0 auto"></span>
+      </div>
+      <textarea id="tagList" rows="12" spellcheck="false" placeholder="grammar::particles&#10;verb::godan&#10;food"></textarea>
+      <div class="hint" id="tagListHint"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">2</span> Tags per card</h2>
+      <div class="row numrow">
+        <label for="tagMin">At least <input id="tagMin" type="number" min="0" step="1"></label>
+        <label for="tagMax">At most <input id="tagMax" type="number" min="1" step="1"></label>
+      </div>
+      <div class="hint">The AI picks the most specific tags that fit, within these limits.</div>
+      <div id="tagOptsWarn"></div>
+    </section>
+  </div>
+
+  <div>
+    <section class="card">
+      <h2><span class="step">3</span> Decks to tag</h2>
+      <div class="toolbar" style="margin-bottom:8px">
+        <span class="count" id="tagDeckCount"></span>
+        <button id="tagDecksAll" class="small">Select all</button>
+      </div>
+      <div id="tagDecks" class="decklist"></div>
+      <div class="hint">Subdecks are included. The AI reads each card's first two fields.</div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">4</span> Cards that already have tags</h2>
+      <div id="tagModes">
+        <label class="check"><input type="radio" name="tagMode" value="add"><span>Add<small>Keep their tags and add the AI's tags</small></span></label>
+        <label class="check"><input type="radio" name="tagMode" value="overwrite"><span>Overwrite<small>Replace their tags with the AI's tags</small></span></label>
+        <label class="check"><input type="radio" name="tagMode" value="skip"><span>Skip tagged<small>Only tag cards that have no tags yet</small></span></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">5</span> Find tags</h2>
+      <label for="tagProvider">AI</label>
+      <select id="tagProvider"></select>
+      <div class="provider-detail"><span id="tagProviderStatus" class="hint" style="margin:0"></span><button class="link" id="tagProviderRecheck" style="font-size:13px">Check again</button><button class="link" id="tagProviderGuide" style="font-size:13px" hidden></button></div>
+      <div style="margin-top:14px"><button id="tagRun" class="primary big">Find tags</button></div>
+      <div class="hint">Nothing changes in Anki until you apply. Cards tagged before and not edited since are not sent to the AI again.</div>
+      <div id="tagStatus"></div>
+    </section>
+  </div>
+</div>
+
+<section class="card" id="tagReview" hidden>
+  <h2><span class="step">6</span> Review, then apply</h2>
+  <div class="toolbar">
+    <span class="count" id="tagCount"></span>
+    <button id="tagSelectAll">Select all</button>
+    <button id="tagApply" class="primary">Apply</button>
+  </div>
+  <div class="tablewrap"><table id="tagTable"></table></div>
+  <div id="tagApplyStatus"></div>
 </section>
 </main>
 
@@ -547,6 +627,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <label class="check"><input type="checkbox" value="prompt"><span>Card prompts<small>Goes back to the built-in Japanese and Mandarin prompts. Your own prompts are deleted.</small></span></label>
   <label class="check"><input type="checkbox" value="key"><span>OpenAI API key<small>Deletes the saved key from this computer</small></span></label>
   <label class="check"><input type="checkbox" value="display"><span>Theme and PDF reading option</span></label>
+  <label class="check"><input type="checkbox" value="autotag"><span>Auto-tag choices<small>Tag list, tags per card, decks and what to do with tagged cards</small></span></label>
   <label class="check"><input type="checkbox" value="nadeshiko"><span>Nadeshiko key and MyAnimeList link<small>Saved Nadeshiko search results are kept</small></span></label>
   <div class="row" style="justify-content:flex-end;margin-top:16px">
     <button id="resetCancel" style="flex:0 0 auto">Cancel</button>
@@ -601,6 +682,7 @@ function fillForm(s){
   $("#mediaKinds").querySelectorAll("input").forEach(i => i.checked = (s.media_categories || []).includes(i.value));
   $("#mediaFallback").checked = !!s.media_fallback;
   showNadeKeyHint(s);
+  fillTagForm(s);
   showKey("#apiKey", s.openai_key_hint);
   applyTheme(s.theme || "system");
 }
@@ -610,7 +692,8 @@ function formValues(){
   return {
     provider:$("#provider").value, delivery:$("#delivery").value, deck:currentDeck(),
     model:currentModel(), direction:$("#direction").value, dup_scope:$("#dupScope").value,
-    pdf_mode:$("#pdfMode").value, manual_fields:$("#manualFields").value, prompts:state.prompts, active_prompt:state.activePrompt
+    pdf_mode:$("#pdfMode").value, manual_fields:$("#manualFields").value, prompts:state.prompts, active_prompt:state.activePrompt,
+    ...tagValues()
   };
 }
 async function saveNow(extra){
@@ -705,22 +788,25 @@ $("#resetGo").onclick = async () => {
 };
 
 // ---------- AI provider status ----------
+// The Auto-tag tab has its own copy of the AI dropdown and status; both show the same choice.
+$("#tagProvider").innerHTML = $("#provider").innerHTML;
 async function checkProvider(){
-  const p = $("#provider").value, el = $("#providerStatus");
-  el.textContent = "Checking..."; el.style.color = "";
-  const guide = $("#providerGuide");
-  guide.hidden = true;
-  guide.textContent = {openai: "OpenAI", codex: "ChatGPT", claude: "Claude"}[p] + " setup guide";
+  const p = $("#provider").value, els = [$("#providerStatus"), $("#tagProviderStatus")];
+  const guides = [$("#providerGuide"), $("#tagProviderGuide")];
+  $("#tagProvider").value = p;
+  els.forEach(el => { el.textContent = "Checking..."; el.style.color = ""; });
+  guides.forEach(g => { g.hidden = true; g.textContent = {openai: "OpenAI", codex: "ChatGPT", claude: "Claude"}[p] + " setup guide"; });
   try {
     const r = await api(`/api/provider/check?provider=${p}`);
     if ($("#provider").value !== p) return; // user switched again meanwhile
-    el.textContent = (r.ok ? "✓ " : "⚠ ") + r.detail;
-    el.style.color = r.ok ? "var(--accent)" : "var(--warn)";
-    guide.hidden = r.ok;
-  } catch(e){ el.textContent = e.message; guide.hidden = false; }
+    els.forEach(el => { el.textContent = (r.ok ? "✓ " : "⚠ ") + r.detail; el.style.color = r.ok ? "var(--accent)" : "var(--warn)"; });
+    guides.forEach(g => g.hidden = r.ok);
+  } catch(e){ els.forEach(el => el.textContent = e.message); guides.forEach(g => g.hidden = false); }
 }
 $("#provider").addEventListener("change", checkProvider);
 $("#providerRecheck").onclick = checkProvider;
+$("#tagProviderRecheck").onclick = checkProvider;
+$("#tagProvider").addEventListener("change", () => { $("#provider").value = $("#tagProvider").value; remember(); checkProvider(); });
 
 // ---------- Anki ----------
 function currentModel(){ return state.anki.ok ? ($("#modelSel").value || "Basic") : ($("#modelText").value.trim() || "Basic"); }
@@ -755,6 +841,7 @@ async function refreshAnki(){
   if (r.ok){
     pill.className = "pill ok"; pill.lastElementChild.textContent = "Anki connected";
     fillDecks(r.decks);
+    renderTagDecks();
     const want = state.settings.model || "Basic";
     $("#modelSel").innerHTML = r.models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join("");
     $("#modelSel").value = r.models.includes(want) ? want : (r.models.includes("Basic") ? "Basic" : r.models[0]);
@@ -762,6 +849,7 @@ async function refreshAnki(){
     await loadFields();
   } else {
     pill.className = "pill no"; pill.lastElementChild.textContent = "Anki not connected";
+    renderTagDecks();
     $("#deckNew").value = state.settings.deck || "Default";
     showDeckInput();
     $("#modelSel").style.display = "none"; $("#modelText").style.display = ""; $("#fieldsBox").style.display = "";
@@ -1162,12 +1250,13 @@ $("#send").onclick = async () => {
 function showTab(id){
   document.querySelectorAll("main").forEach(m => m.hidden = m.id !== id);
   if (id === "cardsTab" && state.settings.provider) loadMediaInfo();
+  if (id === "autotagTab") loadTag();
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
   try { localStorage.setItem("tab", id); } catch (e) {}
   updateToTop();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-{ let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (s === "nadeshikoTab" || s === "guideTab") t = s; } catch (e) {} showTab(t); }
+{ let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (["autotagTab", "nadeshikoTab", "guideTab"].includes(s)) t = s; } catch (e) {} showTab(t); }
 // Shared iCloud link of the clean "Ankiji Nadeshiko" Shortcut (no API key inside). Empty until it exists.
 const CLIP_SHORTCUT_LINK = "https://www.icloud.com/shortcuts/d20bacb214db4ce9b3b19e48302ebed1";
 $("#clipLinkStep").innerHTML = CLIP_SHORTCUT_LINK
@@ -1182,7 +1271,7 @@ function jumpTo(id){  // scroll below the sticky header
   const el = document.getElementById(id);
   if (el) scrollTo({top: el.getBoundingClientRect().top + scrollY - document.querySelector("header").offsetHeight - 12, behavior:"smooth"});
 }
-$("#providerGuide").onclick = () => { showTab("guideTab"); jumpTo("guide-" + $("#provider").value); };
+$("#providerGuide").onclick = $("#tagProviderGuide").onclick = () => { showTab("guideTab"); jumpTo("guide-" + $("#provider").value); };
 // links into the guide or another tab inside text that is re-rendered (hints), so delegated
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-goto]");
@@ -1223,6 +1312,204 @@ document.querySelectorAll("#guideTab .cmd button").forEach(b => b.onclick = asyn
   try { await navigator.clipboard.writeText(text); } catch (e) {}
   b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1500);
 });
+
+// ---------- auto-tag ----------
+state.tag = {decks: null, view: null, include: new Map()};
+function tagList(){
+  const seen = new Set();
+  return $("#tagList").value.split(/[\n,]/).map(t => t.trim().replace(/\s+/g, "_"))
+    .filter(t => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()));
+}
+const tagNum = sel => { const v = $(sel).value.trim(); return /^\d+$/.test(v) ? +v : NaN; };
+function tagMode(){ return $("#tagModes").querySelector("input:checked")?.value || "add"; }
+function tagValues(){
+  if (!("autotag_tags" in state.settings)) return {};  // settings not loaded yet: don't overwrite them with blanks
+  const out = {autotag_tags: tagList(), autotag_mode: tagMode()};
+  if (!isNaN(tagNum("#tagMin"))) out.autotag_min = tagNum("#tagMin");
+  if (!isNaN(tagNum("#tagMax"))) out.autotag_max = tagNum("#tagMax");
+  if (state.tag.decks) out.autotag_decks = [...state.tag.decks];
+  return out;
+}
+function fillTagForm(s){
+  $("#tagList").value = (s.autotag_tags || []).join("\n");
+  $("#tagMin").value = s.autotag_min; $("#tagMax").value = s.autotag_max;
+  const m = $("#tagModes").querySelector(`input[value="${s.autotag_mode}"]`) || $("#tagModes").querySelector("input");
+  m.checked = true;
+  state.tag.decks = new Set(s.autotag_decks || []);
+  renderTagDecks(); tagCheck();
+}
+// What's wrong with the tag list and limits, or "" when they're fine. The server checks the same.
+function tagProblem(){
+  const tags = tagList(), mn = tagNum("#tagMin"), mx = tagNum("#tagMax");
+  if (!tags.length) return "Add at least one tag to the list.";
+  if (isNaN(mn) || isNaN(mx)) return "Tags per card must be whole numbers.";
+  if (mx < 1) return "At most must be 1 or more.";
+  if (mn > mx) return "At least can't be bigger than at most.";
+  if (mx > tags.length) return `At most can't be more than the ${tags.length} tag${tags.length===1?"":"s"} in your list.`;
+  return "";
+}
+function tagCheck(){
+  const tags = tagList(), problem = tagProblem();
+  $("#tagListHint").innerHTML = (tags.length ? `${tags.length} tag${tags.length===1?"":"s"}. ` : "") +
+    "One tag per line. Use <code>::</code> for levels, e.g. <code>grammar::particles</code>. Spaces become <code>_</code>.";
+  $("#tagMax").max = Math.max(1, tags.length);
+  notice("#tagOptsWarn", "warn", problem && tags.length ? esc(problem) : "");
+  renderTagRun();
+  return problem;
+}
+$("#tagList").addEventListener("input", () => {
+  tagCheck();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => { await saveNow(); flash("#tagSaved", "Saved"); }, 700);
+});
+["#tagMin", "#tagMax"].forEach(id => $(id).addEventListener("input", () => { tagCheck(); remember(); }));
+$("#tagModes").querySelectorAll("input").forEach(i => i.addEventListener("change", remember));
+
+function renderTagDecks(){
+  const box = $("#tagDecks");
+  if (!state.anki.ok){
+    box.innerHTML = '<div class="hint" style="margin:6px 0">Anki isn\'t connected. Open Anki, then click <b>Recheck</b> at the top. <button class="link" data-guide="guide-anki">Anki setup guide</button></div>';
+    $("#tagDeckCount").textContent = ""; $("#tagDecksAll").hidden = true;
+    return renderTagRun();
+  }
+  const decks = state.anki.decks || [], sel = state.tag.decks || new Set();
+  box.innerHTML = decks.map(d => {
+    const parts = d.split("::"), depth = parts.length - 1;
+    return `<label style="padding-left:${depth * 18}px" title="${esc(d)}"><input type="checkbox" value="${esc(d)}" ${sel.has(d) ? "checked" : ""}>
+      ${esc(parts[depth])}${depth ? ` <span class="sub">in ${esc(parts.slice(0, -1).join("::"))}</span>` : ""}</label>`;
+  }).join("") || '<div class="hint">No decks yet.</div>';
+  box.querySelectorAll("input").forEach(i => i.onchange = () => {
+    i.checked ? state.tag.decks.add(i.value) : state.tag.decks.delete(i.value);
+    tagDeckCount(); remember();
+  });
+  $("#tagDecksAll").hidden = !decks.length;
+  tagDeckCount();
+}
+// Saved decks that no longer exist in Anki are kept in settings but never sent.
+const tagChosenDecks = () => (state.anki.decks || []).filter(d => state.tag.decks?.has(d));
+function tagDeckCount(){
+  const n = tagChosenDecks().length, all = n && n === (state.anki.decks || []).length;
+  $("#tagDeckCount").textContent = `${n} deck${n===1?"":"s"} selected`;
+  $("#tagDecksAll").textContent = all ? "Select none" : "Select all";
+  renderTagRun();
+}
+$("#tagDecksAll").onclick = () => {
+  const all = tagChosenDecks().length === (state.anki.decks || []).length;
+  state.tag.decks = new Set(all ? [] : state.anki.decks);
+  renderTagDecks(); remember();
+};
+
+const tagRunning = () => !!state.tag.view?.running;
+function renderTagRun(){
+  const btn = $("#tagRun"), run = tagRunning();
+  btn.textContent = run ? "Cancel" : "Find tags";
+  btn.classList.toggle("primary", !run); btn.classList.toggle("danger", run);
+  btn.disabled = !run && (!state.anki.ok || !tagChosenDecks().length || !!tagProblem());
+}
+$("#tagRun").onclick = async () => {
+  if (tagRunning()) { try { await post("/api/autotag/cancel", {}); } catch (e) {} return; }
+  const problem = tagCheck();
+  if (problem) return notice("#tagStatus", "warn", esc(problem));
+  await saveNow();
+  notice("#tagApplyStatus");
+  try {
+    renderTagState(await post("/api/autotag/start", {provider: $("#provider").value, decks: tagChosenDecks(),
+      mode: tagMode(), tags: tagList(), min: tagNum("#tagMin"), max: tagNum("#tagMax")}));
+    tagWatch();
+  } catch (e) { notice("#tagStatus", "bad", esc(e.message)); }
+};
+
+let tagPoll = null;
+function tagWatch(){
+  clearTimeout(tagPoll);
+  tagPoll = setTimeout(async () => {
+    try { const v = await api("/api/autotag/state"); renderTagState(v); if (v.running) tagWatch(); }
+    catch (e) { tagWatch(); }
+  }, 700);
+}
+async function loadTag(){
+  try { const v = await api("/api/autotag/state"); renderTagState(v); if (v.running) tagWatch(); } catch (e) {}
+}
+function tagSummary(s){
+  const n = (x, w) => `${x} ${w}${x===1?"":"s"}`;
+  let msg = `Read ${n(s.notes, "note")}.`;
+  if (s.skipped) msg += ` Skipped ${s.skipped} that already had tags.`;
+  msg += ` ${s.sent} sent to the AI` + (s.cached ? `, ${s.cached} from earlier runs.` : ".");
+  msg += ` ${s.change} to change, ${s.same} already fine.`;
+  if (s.failed) msg += ` ${n(s.failed, "note")} could not be tagged because the AI kept breaking the rules.`;
+  if (s.not_done) msg += ` ${s.not_done} not done yet.`;
+  return msg;
+}
+function renderTagState(v){
+  // A run that just finished (or the first look at this page) starts with every change ticked.
+  const fresh = !state.tag.view || (state.tag.view.running && !v.running);
+  state.tag.view = v;
+  renderTagRun();
+  if (v.running){
+    const what = v.phase === "ai" ? `Asking the AI... ${v.done} of ${v.total} notes` : "Reading notes from Anki...";
+    notice("#tagStatus", "good", `<span class="spin"></span> ${what}` + (v.phase === "ai" && $("#provider").value !== "openai" ? " (subscription options can take a minute or two)" : ""));
+    $("#tagReview").hidden = true;
+    return;
+  }
+  if (v.result) notice("#tagStatus", v.result.kind, esc([v.result.message, v.summary ? tagSummary(v.summary) : ""].filter(Boolean).join(" ")));
+  const rows = v.rows || [];
+  if (fresh) state.tag.include = new Map(rows.filter(r => r.status === "change").map(r => [r.id, true]));
+  $("#tagReview").hidden = !rows.length;
+  renderTagTable();
+}
+function tagChips(tags, clsOf){
+  return `<div class="tagcell">${tags.map(t => `<span class="badge ${clsOf(t.toLowerCase())}">${esc(t)}</span>`).join("") || '<span class="hint" style="margin:0">none</span>'}</div>`;
+}
+function renderTagTable(){
+  const rows = state.tag.view?.rows || [];
+  const head = `<tr><th><input type="checkbox" id="tagCheckAll" title="Select all / none"></th><th>#</th><th>Front</th><th>Back</th><th>Tags now</th><th>Tags after</th></tr>`;
+  $("#tagTable").innerHTML = head + rows.map((r, i) => {
+    const on = r.status === "change" && state.tag.include.get(r.id);
+    const gone = new Set((r.removed || []).map(t => t.toLowerCase())), added = new Set((r.added || []).map(t => t.toLowerCase()));
+    const after = r.status === "failed" ? `<span class="badge err">Not tagged</span> <span class="hint">${esc(r.reason)}</span>`
+      : tagChips(r.after, t => added.has(t) ? "new" : "unk") + (r.status === "applied" ? '<div class="hint">✓ Applied</div>' : "");
+    return `<tr data-id="${r.id}" class="${on ? "" : "off"}">
+      <td><input type="checkbox" class="inc" ${on ? "checked" : ""} ${r.status === "change" ? "" : "disabled"} aria-label="Apply to note ${i+1}"></td>
+      <td class="num">${i+1}</td><td class="txt">${esc(r.front)}</td><td class="txt">${esc(r.back)}</td>
+      <td>${tagChips(r.before, t => gone.has(t) ? "gone" : "unk")}</td><td>${after}</td></tr>`;
+  }).join("");
+  $("#tagTable").querySelectorAll("tr[data-id]").forEach(tr => {
+    const id = +tr.dataset.id;
+    tr.querySelector(".inc").onchange = e => { state.tag.include.set(id, e.target.checked); tr.className = e.target.checked ? "" : "off"; renderTagCount(); };
+  });
+  $("#tagCheckAll").onchange = e => tagSetAll(e.target.checked);
+  renderTagCount();
+}
+const tagPending = () => (state.tag.view?.rows || []).filter(r => r.status === "change");
+function renderTagCount(){
+  const rows = state.tag.view?.rows || [], pend = tagPending(), n = pend.filter(r => state.tag.include.get(r.id)).length;
+  const applied = rows.filter(r => r.status === "applied").length, failed = rows.filter(r => r.status === "failed").length;
+  $("#tagCount").textContent = `${rows.length} note${rows.length===1?"":"s"} · ${n} selected` +
+    (applied ? ` · ${applied} applied` : "") + (failed ? ` · ${failed} not tagged` : "");
+  $("#tagApply").textContent = `Apply to ${n} note${n===1?"":"s"}`;
+  $("#tagApply").disabled = !n;
+  const all = pend.length && n === pend.length;
+  $("#tagSelectAll").textContent = all ? "Select none" : "Select all";
+  $("#tagSelectAll").disabled = !pend.length;
+  const ca = $("#tagCheckAll");
+  if (ca) { ca.checked = all; ca.indeterminate = n > 0 && !all; ca.disabled = !pend.length; }
+}
+function tagSetAll(on){ tagPending().forEach(r => state.tag.include.set(r.id, on)); renderTagTable(); }
+$("#tagSelectAll").onclick = () => tagSetAll(tagPending().some(r => !state.tag.include.get(r.id)));
+$("#tagApply").onclick = async () => {
+  const ids = tagPending().filter(r => state.tag.include.get(r.id)).map(r => r.id);
+  if (!ids.length) return;
+  const how = {add: "add tags to", overwrite: "replace the tags of", skip: "tag"}[state.tag.view.mode] || "change";
+  if (!confirm(`This will ${how} ${ids.length} note${ids.length===1?"":"s"} in Anki. Continue?`)) return;
+  $("#tagApply").disabled = true;
+  notice("#tagApplyStatus", "good", '<span class="spin"></span> Updating tags in Anki...');
+  try {
+    const r = await post("/api/autotag/apply", {ids});
+    state.tag.view = r.state; renderTagTable();
+    notice("#tagApplyStatus", r.errors.length ? "warn" : "good",
+      `Updated the tags of ${r.applied} note${r.applied===1?"":"s"}.` + (r.errors.length ? "<br>Problems:<br>" + r.errors.map(esc).join("<br>") : ""));
+  } catch (e) { notice("#tagApplyStatus", "bad", esc(e.message)); renderTagCount(); }
+};
 
 // ---------- Nadeshiko ----------
 function showNadeKeyHint(s){
@@ -1304,7 +1591,7 @@ async function loadNade(){
   try { const v = await api("/api/nadeshiko/state"); renderNade(v); if (v.job.running) nadeWatch(); } catch (e) {}
 }
 
-(async () => { await loadSettings(); loadNade(); loadMediaInfo(); await refreshAnki(); checkProvider(); })();
+(async () => { await loadSettings(); loadNade(); loadMediaInfo(); loadTag(); await refreshAnki(); checkProvider(); })();
 </script>
 </body>
 </html>
