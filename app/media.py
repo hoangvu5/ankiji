@@ -1,4 +1,4 @@
-"""Find an example sentence (image + audio + Japanese and English subtitles) on Nadeshiko
+"""Find an example sentence (video clip + Japanese and English subtitles) on Nadeshiko
 for a card, preferring the anime ticked in the Nadeshiko tab."""
 import html
 import re
@@ -12,7 +12,7 @@ CATEGORIES = ["ANIME", "JDRAMA", "YOUTUBE", "AUDIOBOOK"]
 TAKE = 10
 ENOUGH = 3          # stop searching wider once this many sentences were found
 LONG = 60           # sentences longer than this go to the back of the list
-FILE_RE = re.compile(r"nadeshiko_[A-Za-z0-9_-]{12}\.(?:webp|mp3)")
+FILE_RE = re.compile(r"nadeshiko_[A-Za-z0-9_-]{12}\.(?:mp4|webp|mp3)")
 
 
 class MediaError(Exception):
@@ -68,9 +68,8 @@ def _candidate(seg, names, mine):
         "en": en,
         "en_machine": bool((seg.get("textEn") or {}).get("isMachineTranslated")),
         "image": seg["urls"]["imageUrl"],
-        "audio": seg["urls"]["audioUrl"],
-        "image_file": f"nadeshiko_{sid}.webp",
-        "audio_file": f"nadeshiko_{sid}.mp3",
+        "video": seg["urls"]["videoUrl"],
+        "video_file": f"nadeshiko_{sid}.mp4",
         "source": (m.get("nameEn") or m.get("nameRomaji") or "") + (f", episode {ep}" if ep else ""),
         "category": m.get("category") or "",
         "mine": seg["mediaPublicId"] in mine,

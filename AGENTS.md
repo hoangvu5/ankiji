@@ -46,7 +46,7 @@ app/llm.py           card generation via 3 providers, chunking, de-dupe
 app/autotag.py       Auto-tag tab: read notes, AI tags from the user's list, validation, cache, apply
 autotag_cache.json   created at runtime; AI tags per note (note ID + modified time)
 app/nadeshiko.py     MAL list reading, Nadeshiko search, cache, background job (Nadeshiko tab)
-app/media.py         example sentences (image + audio + JA/EN subs) from Nadeshiko for the Media field
+app/media.py         example sentences (video clip + JA/EN subs) from Nadeshiko for the Media field
 app/paths.py         bundle vs data folders (source run and packaged .exe)
 app/prompts.py       built-in card prompts (the user's Japanese one, and a Mandarin one for a Vietnamese HSK 1-2 learner)
 app/notetypes.py     ready-made note types (Japanese Card Format, Mandarin Card Format): fields, templates, CSS, one-click create
@@ -122,7 +122,7 @@ Install notes for the user (Windows):
 - `POST https://api.nadeshiko.co/v1/search` with `query {search, exactMatch}`, `filters {category, contentRating [SAFE, SUGGESTIVE], languages: [] (match Japanese only, otherwise "xyz" matched English subs), media.include}`, `include: ["media"]`, `take 10`. Segment has `textJa.content/highlight` (highlight uses `<em>` and can contain other spans: strip all tags, keep em as `<b>`), `textEn.content/isMachineTranslated`, `urls.imageUrl/audioUrl` (public CDN `cdn.nadeshiko.co`, webp + mp3, no auth). Full spec is embedded in nadeshiko.co/docs/api (redoc `__redoc_definition`).
 - Steps: exact search in "my anime" (ticked rows in the Nadeshiko tab, max 100 include ids) if ANIME is a chosen kind; then, if fallback is on (or no anime ticked), everything with `preferMedia` = my ids; stop at 3 results. If nothing, repeat with `exactMatch: false`. Every line must contain the word's stem (drops unrelated fuzzy hits). Human subtitles and short lines sorted first.
 - The search word comes from a chosen field via `media.search_term` (strips HTML, `[furigana]`, `(readings)`, takes the first of a list).
-- Field value: `<img src="nadeshiko_<segId>.webp"> [sound:nadeshiko_<segId>.mp3]<br>JA<br>EN`. The browser keeps the candidates per card (Next sentence cycles without a new request). On send the page passes `media_files {filename: cdn url}`; `anki.add` stores only files used by the notes via `storeMediaFile {filename, url}` (only cdn.nadeshiko.co URLs). TSV export has no media.
+- Field value: `[sound:nadeshiko_<segId>.mp4]<br>JA<br>EN`, one clip from `urls.videoUrl` (picture and sound together, about 60-80 KB; every category has one). `[sound:]` is how Anki attaches video: AnkiMobile plays it on the card, desktop Anki in its own player. The review table previews it with `<video>` (poster = `imageUrl`). Old notes with `.webp` + `.mp3` still match `FILE_RE`. The browser keeps the candidates per card (Next sentence cycles without a new request). On send the page passes `media_files {filename: cdn url}`; `anki.add` stores only files used by the notes via `storeMediaFile {filename, url}` (only cdn.nadeshiko.co URLs). TSV export has no media.
 - Generate passes `media_field`; the server tells the AI to leave it empty and blanks it afterwards.
 - Settings: `media_field` (default "Media"), `media_search_field` ("" = first), `media_categories` (["ANIME"]), `media_fallback` (true). Reset group `media`.
 - Tested with the real key: 練習, 食べた, 走る found in the user's anime; nonsense words return nothing. Send path tested with a fake AnkiConnect only (real Anki was open, not written to).

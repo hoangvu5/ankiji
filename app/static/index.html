@@ -137,7 +137,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 .mediabar .kinds{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
 .mediabar .kinds label{display:flex;gap:6px;align-items:center;font-weight:500;margin:4px 0}
 .mcell{display:flex;gap:10px;min-width:330px;align-items:flex-start}
-.mcell img{width:140px;border-radius:6px;border:1px solid var(--line);display:block;background:#000}
+.mcell video{width:180px;border-radius:6px;border:1px solid var(--line);display:block;background:#000}
 .mcell .ja{font-size:15px}
 .mcell .en{font-size:13px;color:var(--muted)}
 .mcell .src{font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -574,7 +574,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Make a free account at <code>nadeshiko.co</code>, then open <code>nadeshiko.co/user/developer</code> and create an API key. Copy it.</li>
       <li>In this app open the <b>Nadeshiko</b> tab and paste the key into <b>Nadeshiko API key</b>.</li>
       <li>Optional: paste your MyAnimeList profile link (your list must be public) and click <b>Update from MyAnimeList</b>. Then sentences come from anime you know first.</li>
-      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry images and audio.</li>
+      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a short video clip (picture and sound in one .mp4) and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry video.</li>
     </ol>
   </section>
 
@@ -1011,7 +1011,7 @@ $("#generate").onclick = async () => {
 // ---------- review ----------
 function payload(cards){
   const media_files = {};
-  cards.forEach(c => { const m = chosen(c); if (m) { media_files[m.image_file] = m.image; media_files[m.audio_file] = m.audio; } });
+  cards.forEach(c => { const m = chosen(c); if (m) media_files[m.video_file] = m.video; });
   return { cards: cards.map(c => ({fields:c.fields, tags:c.tags})), deck: currentDeck(), media_files,
            model: currentModel(), direction: $("#direction").value, dup_scope: $("#dupScope").value, fields: state.reviewFields };
 }
@@ -1105,7 +1105,7 @@ function pickMediaField(fields){
   return fields.find(f => f.trim().toLowerCase() === "media") || "";
 }
 function mediaKinds(){ return [...$("#mediaKinds").querySelectorAll("input:checked")].map(i => i.value); }
-function mediaHtml(m){ return `<img src="${m.image_file}"> [sound:${m.audio_file}]<br>${m.ja_html}<br>${esc(m.en)}`; }
+function mediaHtml(m){ return `[sound:${m.video_file}]<br>${m.ja_html}<br>${esc(m.en)}`; }
 function applyMedia(c){
   const j = (state.reviewFields || state.fields).indexOf($("#mediaField").value);
   if (j < 0) return;
@@ -1138,7 +1138,7 @@ function renderMediaBar(){
   else {
     msg = info.my_anime ? ""
       : 'No anime are ticked in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button>, so all titles are searched.';
-    if ($("#delivery").value === "tsv") msg += " Images and audio only go into Anki with <b>Straight into Anki</b>. An import file keeps just the text.";
+    if ($("#delivery").value === "tsv") msg += " Video clips only go into Anki with <b>Straight into Anki</b>. An import file keeps just the text.";
   }
   $("#mediaInfo").innerHTML = msg.trim();
   $("#mediaInfo").hidden = !msg.trim();
@@ -1152,16 +1152,14 @@ function mediaCell(c){
   if (!m) return `<div class="mempty">${md.candidates.length ? "Media removed." : `No sentence found for <b>${esc(md.term)}</b>. Try another word or form:`}${again}
     ${md.candidates.length ? '<div class="btns"><button class="small mnext">Show sentences again</button></div>' : ""}</div>`;
   const total = md.candidates.length;
-  return `<div class="mcell"><img src="${esc(m.image)}" alt="" loading="lazy">
+  return `<div class="mcell"><video src="${esc(m.video)}" poster="${esc(m.image)}" controls preload="none"></video>
     <div><div class="ja">${m.ja_html}</div><div class="en">${esc(m.en)}${m.en_machine ? " (machine translated)" : ""}</div>
       <div class="src">${m.mine ? "★ Your anime: " : "Other title: "}${esc(m.source)}</div>
-      <div class="btns"><button class="small mplay">▶ Play</button>
-        <button class="small mnext" ${total < 2 ? "disabled" : ""}>Next sentence (${md.idx + 1}/${total})</button>
+      <div class="btns"><button class="small mnext" ${total < 2 ? "disabled" : ""}>Next sentence (${md.idx + 1}/${total})</button>
         <button class="small mremove">Remove</button></div>${again}</div></div>`;
 }
 function wireMediaCell(td, c){
   const on = (s, fn) => { const b = td.querySelector(s); if (b) b.onclick = fn; };
-  on(".mplay", () => { const m = chosen(c); if (m) new Audio(m.audio).play().catch(() => {}); });
   on(".mnext", () => { const n = c.media.candidates.length; c.media.idx = (c.media.idx + 1) % n; applyMedia(c); updateMediaRow(c); });
   on(".mremove", () => { c.media.idx = -1; applyMedia(c); updateMediaRow(c); });
   const go = () => findMedia([c], td.querySelector(".mterm").value.trim(), true);
