@@ -8,7 +8,7 @@ from typing import List
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
-from . import anki, extract, llm, media, nadeshiko, notetypes
+from . import anki, autotag, extract, llm, media, nadeshiko, notetypes
 from .prompts import DEFAULT_PROMPTS
 from .paths import STATIC_DIR, data
 
@@ -36,6 +36,12 @@ DEFAULTS = {
     "media_search_field": "",
     "media_categories": ["ANIME"],
     "media_fallback": True,
+    "autotag_tags": [],
+    "autotag_min": 1,
+    "autotag_max": 3,
+    "autotag_decks": [],
+    "autotag_mode": "add",
+    "autotag_prompt": "",
 }
 
 RESET_GROUPS = {
@@ -46,6 +52,7 @@ RESET_GROUPS = {
     "display": ["theme", "pdf_mode"],
     "nadeshiko": ["nadeshiko_api_key", "mal_profile"],
     "media": ["media_field", "media_search_field", "media_categories", "media_fallback"],
+    "autotag": ["autotag_tags", "autotag_min", "autotag_max", "autotag_decks", "autotag_mode", "autotag_prompt"],
 }
 
 _lock = threading.Lock()
@@ -113,6 +120,15 @@ def set_settings(data: dict = Body(...)):
                  for p in v if isinstance(p, dict) and str(p.get("name", "")).strip()]
             if not v:
                 continue
+        if k == "autotag_tags":
+            v = autotag.clean_tags(v)
+        if k in ("autotag_min", "autotag_max"):
+            try:
+                v = max(0, int(v))
+            except (TypeError, ValueError):
+                continue
+        if k == "autotag_mode" and v not in autotag.MODES:
+            continue
         if k in DEFAULTS:
             s[k] = v
     if data.get("clear_openai_key"):
@@ -308,3 +324,37 @@ def nadeshiko_search_again(data: dict = Body(...)):
 def nadeshiko_use(data: dict = Body(...)):
     nadeshiko.set_use(data["id"], data["use"])
     return nadeshiko.view()
+
+
+@app.post("/api/autotag/start")
+def autotag_start(data: dict = Body(...)):
+    s = load_settings()
+    try:
+        started = autotag.start(data.get("provider") or s["provider"], s, data.get("decks"), data.get("mode"),
+                                data.get("tags"), data.get("min"), data.get("max"), data.get("prompt", ""))
+    except autotag.TagError as e:
+        raise HTTPException(400, str(e))
+    if not started:
+        raise HTTPException(409, "Tagging is already running.")
+    return autotag.view()
+
+
+@app.get("/api/autotag/state")
+def autotag_state():
+    return autotag.view()
+
+
+@app.post("/api/autotag/cancel")
+def autotag_cancel():
+    return {"cancelled": autotag.cancel()}
+
+
+@app.post("/api/autotag/apply")
+def autotag_apply(data: dict = Body(...)):
+    try:
+        ids = [int(i) for i in data.get("ids") or []]
+        return {**autotag.apply(ids), "state": autotag.view()}
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Bad note list.")
+    except (autotag.TagError, anki.AnkiError) as e:
+        raise HTTPException(400, str(e))

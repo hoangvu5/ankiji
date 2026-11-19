@@ -3,6 +3,7 @@ settings.json
 settings*.json
 nadeshiko_cache.json
 nadeshiko_cache.json.tmp
+autotag_cache.json
 *.tmp
 .env
 .env.*

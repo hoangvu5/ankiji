@@ -12,6 +12,7 @@
 - **Your format.** You write the card prompt once (Japanese and Mandarin prompts are built in) and the AI fills the fields of your own Anki note type.
 - **No duplicates.** Cards already in your deck are found and skipped before anything is added.
 - **Media from Nadeshiko.** One click adds a screenshot, the audio and the Japanese and English subtitles of an anime line that uses the word, preferring anime from your MyAnimeList.
+- **Auto-tag.** Tag the cards already in your decks with tags from your own list. You see every change before it goes into Anki, and cards tagged before are not sent to the AI again unless you edit them.
 - **Your choice of AI.** An OpenAI API key, or the ChatGPT or Claude subscription you already pay for.
 - **Ready-made note types** for Japanese (with on-screen kanji handwriting) and Mandarin, created in Anki with one click.
 

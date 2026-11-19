@@ -88,7 +88,7 @@ def _parse_json(raw: str) -> dict:
 
 # ---------------- providers ----------------
 
-def _call_openai(settings, fields, instructions, text, images, label, job):
+def _call_openai(settings, system, user, schema, images, job, name, hint):
     from openai import OpenAI
 
     key = settings.get("openai_api_key") or os.environ.get("OPENAI_API_KEY")
@@ -96,16 +96,13 @@ def _call_openai(settings, fields, instructions, text, images, label, job):
         raise RuntimeError("No OpenAI API key. Add it in Settings, or pick a subscription option instead.")
     client = OpenAI(api_key=key)
     job.add_closer(client.close)  # closing the client aborts a request that is still running
-    content = [{"type": "text", "text": _user_text(instructions, text, label)}]
+    content = [{"type": "text", "text": user}]
     for img in images:
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img['b64']}", "detail": "high"}})
     resp = client.chat.completions.create(
         model=settings.get("openai_model") or "gpt-5.4-mini",
-        messages=[{"role": "system", "content": _system(fields)}, {"role": "user", "content": content}],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {"name": "anki_cards", "strict": True, "schema": schema_for(len(fields))},
-        },
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": content}],
+        response_format={"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}},
     )
     msg = resp.choices[0].message
     if getattr(msg, "refusal", None):
@@ -218,7 +215,7 @@ def _kill_tree(p):
         p.kill()
 
 
-def _call_codex(settings, fields, instructions, text, images, label, job):
+def _call_codex(settings, system, user, schema, images, job, name, hint):
     exe = _find_cli("codex")
     if not exe:
         raise RuntimeError("Codex CLI not found. Install it, run `codex login`, choose 'Sign in with ChatGPT', then try again.")
@@ -226,7 +223,7 @@ def _call_codex(settings, fields, instructions, text, images, label, job):
         schema_path = os.path.join(tmp, "schema.json")
         out_path = os.path.join(tmp, "out.json")
         with open(schema_path, "w", encoding="utf-8") as f:
-            json.dump(schema_for(len(fields)), f)
+            json.dump(schema, f)
         cmd = [exe, "exec"]
         for i, img in enumerate(images):  # images first so the flag can't swallow later args
             p = os.path.join(tmp, f"img{i}.jpg")
@@ -237,8 +234,7 @@ def _call_codex(settings, fields, instructions, text, images, label, job):
         if settings.get("codex_model"):
             cmd += ["-m", settings["codex_model"]]
         cmd.append("-")  # prompt comes from stdin
-        prompt = _system(fields) + "\n\n" + _user_text(instructions, text, label) + \
-            "\nDo not run commands or edit files. Reply only with the JSON object."
+        prompt = system + "\n\n" + user + "\nDo not run commands or edit files. Reply only with the JSON object."
         env = _cli_env(("OPENAI_API_KEY", "CODEX_API_KEY"))
         out, err = job.run(cmd, prompt, tmp, env)
         if os.path.exists(out_path) and os.path.getsize(out_path):
@@ -250,16 +246,15 @@ def _call_codex(settings, fields, instructions, text, images, label, job):
         raise RuntimeError("Codex failed:\n" + tail)
 
 
-def _call_claude(settings, fields, instructions, text, images, label, job):
+def _call_claude(settings, system, user, schema, images, job, name, hint):
     exe = _find_cli("claude")
     if not exe:
         raise RuntimeError("Claude Code not found. Install it, run `claude` once and log in with your Claude account, then try again.")
     content = []
     for img in images:
         content.append({"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": img["b64"]}})
-    content.append({"type": "text", "text": _system(fields) + "\n\n" + _user_text(instructions, text, label) +
-                    "\nDo not use any tools. Reply with ONLY one JSON object of the form "
-                    '{"cards":[{"f0":"...","f1":"...","tags":[]}]} and nothing else.'})
+    content.append({"type": "text", "text": system + "\n\n" + user +
+                    f"\nDo not use any tools. Reply with ONLY one JSON object of the form {hint} and nothing else."})
     line = json.dumps({"type": "user", "message": {"role": "user", "content": content}}) + "\n"
     cmd = [exe, "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
            "--max-turns", "2"]
@@ -287,6 +282,17 @@ def _call_claude(settings, fields, instructions, text, images, label, job):
 
 
 PROVIDERS = {"openai": _call_openai, "codex": _call_codex, "claude": _call_claude}
+
+
+def ask(provider, settings, system, user, schema, images=(), job=None, name="answer", hint="{}"):
+    """One AI call that must answer with JSON matching schema. hint is an example of that
+    JSON for Claude Code, which has no schema option here."""
+    if provider not in PROVIDERS:
+        raise RuntimeError(f"Unknown provider {provider}")
+    return PROVIDERS[provider](settings, system, user, schema, list(images), job or Job(), name, hint)
+
+
+CARDS_HINT = '{"cards":[{"f0":"...","f1":"...","tags":[]}]}'
 
 
 def check_provider(provider, settings):
@@ -341,13 +347,13 @@ def generate(provider, settings, fields, instructions, text, images, job=None):
     parts += [("", images[i : i + IMAGES_PER_CALL]) for i in range(0, len(images), IMAGES_PER_CALL)]
     if not parts:
         raise RuntimeError("Nothing to make cards from. Add files or text first.")
-    fn = PROVIDERS[provider]
     labels = [f"part {i + 1} of {len(parts)}" if len(parts) > 1 else "" for i in range(len(parts))]
     workers = 3 if provider == "openai" else 2
     def one(part, label):
         job.check()  # parts still waiting for a worker are skipped after a cancel
         try:
-            return fn(settings, fields, instructions, part[0], part[1], label, job)
+            return ask(provider, settings, _system(fields), _user_text(instructions, part[0], label),
+                       schema_for(len(fields)), part[1], job, "anki_cards", CARDS_HINT)
         except Exception:
             job.check()  # a killed process or closed client shows up as an error: report the cancel instead
             raise

@@ -22,7 +22,7 @@ if not exist ".venv\Scripts\python.exe" (
   run.py || (echo Build failed. & %PAUSE% & exit /b 1)
 
 rem The build must never contain your own settings, key or cache.
-del /q "dist\Ankiji\settings.json" "dist\Ankiji\nadeshiko_cache.json" "dist\Ankiji\app-log.txt" 2>nul
+del /q "dist\Ankiji\settings.json" "dist\Ankiji\nadeshiko_cache.json" "dist\Ankiji\autotag_cache.json" "dist\Ankiji\app-log.txt" 2>nul
 rmdir /s /q "dist\Ankiji\browser-profile" 2>nul
 copy /y "README.md" "dist\Ankiji\README.md" >nul
 copy /y "LICENSE" "dist\Ankiji\LICENSE.txt" >nul

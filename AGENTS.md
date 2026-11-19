@@ -43,6 +43,8 @@ settings.json        created at runtime; holds all saved choices AND the OpenAI 
 app/server.py        FastAPI routes, settings load/save/reset, in-memory image store
 app/extract.py       file -> text + images
 app/llm.py           card generation via 3 providers, chunking, de-dupe
+app/autotag.py       Auto-tag tab: read notes, AI tags from the user's list, validation, cache, apply
+autotag_cache.json   created at runtime; AI tags per note (note ID + modified time)
 app/nadeshiko.py     MAL list reading, Nadeshiko search, cache, background job (Nadeshiko tab)
 app/media.py         example sentences (image + audio + JA/EN subs) from Nadeshiko for the Media field
 app/paths.py         bundle vs data folders (source run and packaged .exe)
@@ -125,6 +127,16 @@ Install notes for the user (Windows):
 - Settings: `media_field` (default "Media"), `media_search_field` ("" = first), `media_categories` (["ANIME"]), `media_fallback` (true). Reset group `media`.
 - Tested with the real key: 練習, 食べた, 走る found in the user's anime; nonsense words return nothing. Send path tested with a fake AnkiConnect only (real Anki was open, not written to).
 
+## Auto-tag tab (`app/autotag.py`)
+
+- Tags notes already in Anki with tags from the user's list only. Settings: `autotag_tags` (list, cleaned: spaces -> `_`, case-insensitive unique), `autotag_min` (1), `autotag_max` (3), `autotag_decks`, `autotag_mode` (`add` / `overwrite` / `skip`), `autotag_prompt` (the user's notes on when to use each tag, max 4000 chars, added to the system prompt after the rules, which still win). Reset group `autotag`. Checked in the page and again in `autotag.check_options`: 0 <= min <= max, 1 <= max <= number of tags.
+- Read: `findNotes` with `deck:"<name>"` per deck (subdecks included; `\ " * _` escaped), `notesInfo` in chunks of 500. Front/back = first two fields by order, HTML and `[sound:]` stripped, 400 chars max.
+- AI: `llm.ask` (the provider calls are generic now; card generation uses the same function). 30 notes per call with ids `n1..nN`, schema enum of the tags (skipped above 500 tags), answers checked by `check_answer` (listed tags only, case-insensitive, no repeats, min..max, every note once). Bad notes are retried twice with the reason, then shown as "Not tagged". Setup errors (no key, CLI missing) stop the whole run.
+- Cache `autotag_cache.json`: `{notes: {id: {ver, sig, tags}}}`. `ver` = notesInfo `mod` (content hash if missing), `sig` = hash of tag list + min + max + tagging prompt (editing the prompt re-asks every note). Saved after every batch, so a cancel loses nothing. After apply the new `mod` is written back, because changing tags changes `mod`.
+- Background thread + polling (`GET /api/autotag/state`) like the Nadeshiko tab; Cancel uses `llm.Job`. Preview rows: `change` / `failed` / `applied`; unchanged notes are only counted.
+- Apply (`POST /api/autotag/apply {ids}`) uses `multi`: `addTags` for Add (merges with the note's current tags), `updateNoteTags` for Overwrite and Skip tagged.
+- Tested with a fake AnkiConnect and a fake AI only (`multi`, `addTags`, `updateNoteTags`, `notesInfo.mod` not yet tried against real Anki).
+
 ## Named prompts
 
 - Settings `prompts: [{name, text}]` + `active_prompt`; defaults ("Japanese", "Mandarin") come from `app/prompts.py`. Reset group `prompt` restores the two built-ins. (Migrations from the old single `default_prompt` and the long prompt names were removed once the only old settings file had been converted.)
@@ -143,7 +155,7 @@ Step-by-step for low-tech users: AnkiWeb account + phone sync, Anki + AnkiConnec
 
 ## API routes
 
-`GET /` page · `GET/POST /api/settings` · `POST /api/settings/reset` · `GET /api/provider/check?provider=` · `POST /api/extract` (multipart: files, pasted, pdf_mode) · `POST /api/generate` · `GET /api/anki/status` · `GET /api/anki/fields?model=` · `POST /api/anki/check` · `POST /api/anki/add` · `POST /api/export/tsv` · `GET /api/nadeshiko/state` · `POST /api/nadeshiko/sync` · `POST /api/nadeshiko/search-again` · `POST /api/nadeshiko/use` · `POST /api/media/find {text, clean, categories, fallback}` · `GET /api/media/status` · `GET /api/notetypes` · `GET /api/notetypes/handwriting` · `POST /api/anki/create-notetype`
+`GET /` page · `GET/POST /api/settings` · `POST /api/settings/reset` · `GET /api/provider/check?provider=` · `POST /api/extract` (multipart: files, pasted, pdf_mode) · `POST /api/generate` · `GET /api/anki/status` · `GET /api/anki/fields?model=` · `POST /api/anki/check` · `POST /api/anki/add` · `POST /api/export/tsv` · `GET /api/nadeshiko/state` · `POST /api/nadeshiko/sync` · `POST /api/nadeshiko/search-again` · `POST /api/nadeshiko/use` · `POST /api/media/find {text, clean, categories, fallback}` · `GET /api/media/status` · `GET /api/notetypes` · `GET /api/notetypes/handwriting` · `POST /api/anki/create-notetype` · `POST /api/autotag/start {provider, decks, mode, tags, min, max, prompt}` · `GET /api/autotag/state` · `POST /api/autotag/cancel` · `POST /api/autotag/apply {ids}`
 
 ## Testing approach used so far
 
