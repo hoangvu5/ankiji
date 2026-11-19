@@ -4,6 +4,7 @@ settings*.json
 nadeshiko_cache.json
 nadeshiko_cache.json.tmp
 autotag_cache.json
+massupdate_undo.json
 *.tmp
 .env
 .env.*

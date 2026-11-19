@@ -7,12 +7,14 @@ import time
 import requests
 
 SEARCH_URL = "https://api.nadeshiko.co/v1/search"
+SEGMENT_URL = "https://api.nadeshiko.co/v1/media/segments/"
 CDN = "https://cdn.nadeshiko.co/"
 CATEGORIES = ["ANIME", "JDRAMA", "YOUTUBE", "AUDIOBOOK"]
 TAKE = 10
 ENOUGH = 3          # stop searching wider once this many sentences were found
 LONG = 60           # sentences longer than this go to the back of the list
 FILE_RE = re.compile(r"nadeshiko_[A-Za-z0-9_-]{12}\.(?:mp4|webp|mp3)")
+ID_RE = re.compile(r"nadeshiko_([A-Za-z0-9_-]{12})\.(?:mp4|webp|mp3)")
 
 
 class MediaError(Exception):
@@ -30,10 +32,13 @@ def search_term(value):
     return ""
 
 
-def _post(key, body):
+def _post(key, body, url=SEARCH_URL):
     for attempt in range(4):
         try:
-            r = requests.post(SEARCH_URL, headers={"Authorization": "Bearer " + key}, json=body, timeout=30)
+            if body is None:
+                r = requests.get(url, headers={"Authorization": "Bearer " + key}, timeout=30)
+            else:
+                r = requests.post(url, headers={"Authorization": "Bearer " + key}, json=body, timeout=30)
         except requests.RequestException as e:
             raise MediaError(f"Couldn't reach Nadeshiko: {e}")
         if r.status_code == 429:
@@ -46,7 +51,7 @@ def _post(key, body):
         if r.status_code >= 500:
             raise MediaError(f"Nadeshiko had an error ({r.status_code}). Try again in a minute.")
         if not r.ok:
-            return {"segments": []}  # it didn't accept this query: same as no result
+            return {"segments": []} if body is not None else {}  # not accepted or not found: no result
         return r.json()
     raise MediaError("Nadeshiko is busy. Try again in a minute.")
 
@@ -144,3 +149,16 @@ def files_to_store(cards_fields, media_files):
         if url.startswith(CDN):
             out[name] = url
     return out
+
+
+def segment(key, sid, my_ids=()):
+    """The same sentence again by its ID, or None when Nadeshiko no longer has it."""
+    seg = _post(key, None, SEGMENT_URL + sid)
+    if not seg.get("publicId") or not (seg.get("urls") or {}).get("videoUrl"):
+        return None
+    return _candidate(seg, {}, set(my_ids))
+
+
+def field_html(c):
+    """The Media field value. Keep in step with mediaHtml in index.html."""
+    return f'[sound:{c["video_file"]}]<br>{c["ja_html"]}<br>{html.escape(c["en"], quote=False).replace('"', "&quot;")}'

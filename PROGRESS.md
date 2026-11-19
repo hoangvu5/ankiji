@@ -14,3 +14,13 @@ Fill media now puts one `.mp4` (`urls.videoUrl`, picture and sound together) in 
 `[sound:nadeshiko_<id>.mp4]`, instead of a `.webp` image plus an `.mp3`. The review table previews
 the clip. Verified with the real Nadeshiko API and a fake AnkiConnect (only the used `.mp4` is
 stored). Not verified yet: playback in the user's real Anki desktop and AnkiMobile.
+
+## 2026-11-19: Mass update page
+
+Done (plans/mass-update.md): the Auto-tag tab became Mass update. Decks plus an Anki search the AI
+can write, then one action (add tags, edit with AI, find and replace, attach media clip), preview
+with before/after, apply, and undo of the last apply. Verified with a fake AnkiConnect, fake AI and
+fake Nadeshiko, and in the browser (light and dark).
+
+Not verified yet: against the real Anki (`updateNoteFields`, `findNotes` with AI-written searches)
+and real AI providers for search writing and editing.

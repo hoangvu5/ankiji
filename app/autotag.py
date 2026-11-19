@@ -1,31 +1,25 @@
-"""Tag notes that are already in Anki, using only tags from the user's own list.
+"""Tagging for Mass update: tags from the user's own list only.
 
 autotag_cache.json remembers the AI's tags per note, keyed by note ID + the note's modified
 time, so running again only sends new or edited notes to the AI.
 """
 import hashlib
-import html
 import json
 import os
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from . import anki, llm
+from . import llm
 from .paths import data
 
 CACHE_PATH = data("autotag_cache.json")
 BATCH = 30           # notes per AI call
 RETRIES = 2          # extra tries for notes whose answer broke the rules
-FIELD_CHARS = 400    # per field sent to the AI; the start of a card is enough to tag it
-INFO_CHUNK = 500     # note IDs per notesInfo call
-APPLY_CHUNK = 100    # actions per AnkiConnect multi call
 ENUM_LIMIT = 500     # bigger lists go without a schema enum (OpenAI caps enum size); answers are still checked
 MODES = ("overwrite", "add", "skip")
 
-_lock = threading.Lock()  # guards the cache file and JOB
-JOB = {"running": False, "phase": "", "done": 0, "total": 0, "result": None, "mode": "", "rows": [], "summary": None}
-_current = {"job": None}  # llm.Job of the running tagging, so it can be cancelled
+_lock = threading.Lock()  # guards the cache file
 
 
 class TagError(Exception):
@@ -59,50 +53,6 @@ def check_options(tags, mn, mx):
     if mx > len(tags):
         raise TagError(f"Tags per card: the maximum can't be more than the {len(tags)} tag(s) in your list.")
     return mn, mx
-
-
-# ---------- reading notes ----------
-def _deck_query(name):
-    # Anki search treats * and _ as wildcards and " ends the name, so escape them.
-    return 'deck:"' + re.sub(r'([\\"*_])', r"\\\1", name) + '"'
-
-
-def _plain(value):
-    v = re.sub(r"\[sound:[^\]]*\]", " ", value or "")
-    v = re.sub(r"<br\s*/?>|</div>|</p>", " ", v, flags=re.I)
-    v = html.unescape(re.sub(r"<[^>]+>", "", v))
-    v = re.sub(r"\s+", " ", v).strip()
-    return v[:FIELD_CHARS] + ("..." if len(v) > FIELD_CHARS else "")
-
-
-def _version(info):
-    """Changes whenever the note is edited. Older AnkiConnect has no "mod", then the content decides."""
-    if info.get("mod"):
-        return str(info["mod"])
-    body = json.dumps([info.get("fields"), info.get("tags")], sort_keys=True, ensure_ascii=False)
-    return "h" + hashlib.sha1(body.encode("utf-8")).hexdigest()[:16]
-
-
-def _note(info):
-    fields = sorted((info.get("fields") or {}).items(), key=lambda kv: kv[1].get("order", 0))
-    vals = [_plain(v.get("value", "")) for _, v in fields]
-    return {"id": info["noteId"], "ver": _version(info), "model": info.get("modelName", ""),
-            "tags": list(info.get("tags") or []),
-            "front": vals[0] if vals else "", "back": vals[1] if len(vals) > 1 else ""}
-
-
-def _notes_info(ids):
-    out = []
-    for i in range(0, len(ids), INFO_CHUNK):
-        out += [n for n in anki.invoke("notesInfo", notes=ids[i:i + INFO_CHUNK]) if n and n.get("noteId")]
-    return out
-
-
-def read_notes(decks):
-    ids = set()
-    for d in decks:
-        ids.update(anki.invoke("findNotes", query=_deck_query(d)))
-    return [_note(n) for n in _notes_info(sorted(ids))]
 
 
 # ---------- cache ----------
@@ -260,172 +210,59 @@ def plan(note, ai_tags, mode):
     return after, added, removed
 
 
-def _row(note, status, **kw):
-    return {"id": note["id"], "front": note["front"], "back": note["back"], "before": note["tags"],
-            "status": status, **kw}
-
-
-# ---------- background job ----------
-def _set_job(**kw):
+def find_tags(provider, settings, targets, tags, mn, mx, prompt, job, progress):
+    """AI tags for the target notes, from the cache when the note and the tag options are unchanged.
+    Returns (tags by note id, failure reason by note id, number from cache, error or None)."""
+    sig = signature(tags, mn, mx, prompt)
+    allowed = _lower(tags)
     with _lock:
-        JOB.update(kw)
+        cached = _load().get("notes", {})
+    ai, from_cache = {}, 0
+    for n in targets:
+        c = cached.get(str(n["id"]))
+        if c and c.get("ver") == n["ver"] and c.get("sig") == sig and _lower(c.get("tags", [])) <= allowed:
+            ai[n["id"]] = c["tags"]
+            from_cache += 1
+    todo = [n for n in targets if n["id"] not in ai]
+    batches = [todo[i:i + BATCH] for i in range(0, len(todo), BATCH)]
+    failed, error = {}, None
+    progress(0, len(todo))
+    done = 0
+    with ThreadPoolExecutor(3 if provider == "openai" else 2) as pool:
+        futures = {pool.submit(tag_batch, provider, settings, b, tags, mn, mx, job, prompt): b for b in batches}
+        for f in as_completed(futures):
+            b = futures[f]
+            try:
+                good, bad = f.result()
+            except llm.Cancelled:
+                continue
+            except Exception as e:
+                if not job.cancelled:  # the first real error stops the other batches
+                    error = str(e)
+                    job.cancel()
+                continue
+            ai.update(good)
+            failed.update(bad)
+            with _lock:  # saved after every batch, so a cancel or error never wastes AI calls
+                cache = _load()
+                store = cache.setdefault("notes", {})
+                for n in b:
+                    if n["id"] in good:
+                        store[str(n["id"])] = {"ver": n["ver"], "sig": sig, "tags": good[n["id"]]}
+                _save(cache)
+            done += len(b)
+            progress(done, len(todo))
+    return ai, failed, from_cache, error
 
 
-def _run(provider, settings, decks, mode, tags, mn, mx, prompt, job):
-    try:
-        _set_job(phase="read", done=0, total=0)
-        notes = read_notes(decks)
-        if not notes:
-            raise TagError("These decks have no notes.")
-        skipped = [n for n in notes if mode == "skip" and n["tags"]]
-        targets = [n for n in notes if not (mode == "skip" and n["tags"])]
-        sig = signature(tags, mn, mx, prompt)
-        allowed = _lower(tags)
-        with _lock:
-            cached = _load().get("notes", {})
-        ai, from_cache = {}, 0
-        for n in targets:
-            c = cached.get(str(n["id"]))
-            if c and c.get("ver") == n["ver"] and c.get("sig") == sig and _lower(c.get("tags", [])) <= allowed:
-                ai[n["id"]] = c["tags"]
-                from_cache += 1
-        todo = [n for n in targets if n["id"] not in ai]
-        batches = [todo[i:i + BATCH] for i in range(0, len(todo), BATCH)]
-        failed, error = {}, None
-        _set_job(phase="ai", done=0, total=len(todo))
-        workers = 3 if provider == "openai" else 2
-        with ThreadPoolExecutor(workers) as pool:
-            futures = {pool.submit(tag_batch, provider, settings, b, tags, mn, mx, job, prompt): b for b in batches}
-            for f in as_completed(futures):
-                b = futures[f]
-                try:
-                    good, bad = f.result()
-                except llm.Cancelled:
-                    continue
-                except Exception as e:
-                    if not job.cancelled:  # the first real error stops the other batches
-                        error = str(e)
-                        job.cancel()
-                    continue
-                ai.update(good)
-                failed.update(bad)
-                with _lock:  # saved after every batch, so a cancel or error never wastes AI calls
-                    cache = _load()
-                    store = cache.setdefault("notes", {})
-                    for n in b:
-                        if n["id"] in good:
-                            store[str(n["id"])] = {"ver": n["ver"], "sig": sig, "tags": good[n["id"]]}
-                    _save(cache)
-                    JOB["done"] += len(b)
-        rows, same = [], 0
-        for n in targets:
-            if n["id"] in failed:
-                rows.append(_row(n, "failed", reason=failed[n["id"]]))
-            elif n["id"] in ai:
-                after, added, removed = plan(n, ai[n["id"]], mode)
-                if added or removed:
-                    rows.append(_row(n, "change", after=after, added=added, removed=removed, ai=ai[n["id"]]))
-                else:
-                    same += 1
-        summary = {"notes": len(notes), "skipped": len(skipped), "cached": from_cache, "sent": len(todo),
-                   "change": sum(r["status"] == "change" for r in rows), "same": same, "failed": len(failed),
-                   "not_done": len(targets) - len(ai) - len(failed)}
-        if error:
-            result = {"kind": "bad", "message": error}
-        elif job.cancelled:
-            result = {"kind": "warn", "message": "Stopped. Tags found so far are saved, so the next run continues from here."}
-        else:
-            result = {"kind": "warn" if failed else "good", "message": ""}
-        _set_job(rows=rows, summary=summary, mode=mode, result=result)
-    except (TagError, anki.AnkiError) as e:
-        _set_job(rows=[], summary=None, result={"kind": "bad", "message": str(e)})
-    except Exception as e:
-        _set_job(rows=[], summary=None, result={"kind": "bad", "message": f"Something went wrong: {e}"})
-    finally:
-        _current["job"] = None
-        _set_job(running=False, phase="")
-
-
-def start(provider, settings, decks, mode, tags, mn, mx, prompt=""):
-    if mode not in MODES:
-        raise TagError("Choose what to do with existing tags.")
-    decks = [str(d) for d in decks or [] if str(d).strip()]
-    if not decks:
-        raise TagError("Choose at least one deck.")
-    tags = clean_tags(tags)
-    mn, mx = check_options(tags, mn, mx)
-    prompt = str(prompt or "")
-    if len(prompt) > PROMPT_CHARS:
-        raise TagError(f"The tagging prompt is too long. Keep it under {PROMPT_CHARS} characters.")
-    job = llm.Job()
-    with _lock:
-        if JOB["running"]:
-            return False
-        JOB.update(running=True, phase="start", done=0, total=0, result=None, rows=[], summary=None, mode=mode)
-        _current["job"] = job
-    threading.Thread(target=_run, args=(provider, settings, decks, mode, tags, mn, mx, prompt, job), daemon=True).start()
-    return True
-
-
-def cancel():
-    job = _current["job"]
-    if job:
-        job.cancel()
-    return bool(job)
-
-
-def view():
-    with _lock:
-        return json.loads(json.dumps(JOB))
-
-
-# ---------- apply ----------
-def _multi(actions):
-    """Run (action, params) pairs in chunks. Returns {index: error} for the ones that failed."""
-    errors = {}
-    for i in range(0, len(actions), APPLY_CHUNK):
-        part = actions[i:i + APPLY_CHUNK]
-        res = anki.invoke("multi", actions=[{"action": a, "version": 6, "params": p} for a, p in part])
-        for j, r in enumerate(res or []):
-            if isinstance(r, dict) and r.get("error"):
-                errors[i + j] = str(r["error"])
-    return errors
-
-
-def apply(ids):
-    """Write the previewed tags of the chosen notes into Anki."""
-    want = {int(i) for i in ids}
-    with _lock:
-        if JOB["running"]:
-            raise TagError("Wait until tagging has finished.")
-        mode = JOB["mode"]
-        rows = [r for r in JOB["rows"] if r["status"] == "change" and r["id"] in want]
-    if not rows:
-        raise TagError("Nothing to apply.")
-    actions = []
-    for r in rows:
-        if mode == "add":  # addTags merges with whatever the note has now, so edits made meanwhile stay
-            actions.append(("addTags", {"notes": [r["id"]], "tags": " ".join(r["added"])}))
-        else:
-            actions.append(("updateNoteTags", {"note": r["id"], "tags": r["after"]}))
-    errors = _multi(actions)
-    failed_ids = {rows[i]["id"] for i in errors}
-    # Changing tags changes the note's modified time. Store the new one, or the next run would
-    # think every tagged note was edited and ask the AI again.
-    try:
-        fresh = {n["noteId"]: _version(n) for n in _notes_info([r["id"] for r in rows])}
-    except anki.AnkiError:
-        fresh = {}
+def update_versions(old_to_new):
+    """Applying changes a note's modified time. Move cached tags along, or the next run would
+    think the note was edited and ask the AI again. old_to_new: {note id: (old ver, new ver)}."""
     with _lock:
         cache = _load()
         store = cache.setdefault("notes", {})
-        for r in rows:
-            c = store.get(str(r["id"]))
-            if c and r["id"] in fresh:
-                c["ver"] = fresh[r["id"]]
+        for nid, (old, new) in old_to_new.items():
+            c = store.get(str(nid))
+            if c and c.get("ver") == old and new:
+                c["ver"] = new
         _save(cache)
-        for r in JOB["rows"]:
-            if r["id"] in want and r["status"] == "change" and r["id"] not in failed_ids:
-                r["status"] = "applied"
-    return {"applied": len(rows) - len(errors),
-            "errors": [f"{(rows[i]['front'] or str(rows[i]['id']))[:40]}: {e}" for i, e in errors.items()]}

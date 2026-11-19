@@ -8,7 +8,7 @@ from typing import List
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
-from . import anki, autotag, extract, llm, media, nadeshiko, notetypes
+from . import anki, autotag, extract, llm, massupdate, media, nadeshiko, notetypes
 from .prompts import DEFAULT_PROMPTS
 from .paths import STATIC_DIR, data
 
@@ -42,6 +42,17 @@ DEFAULTS = {
     "autotag_decks": [],
     "autotag_mode": "add",
     "autotag_prompt": "",
+    "mass_action": "tag",
+    "mass_describe": "",
+    "mass_search": "",
+    "edit_fields": [],
+    "edit_prompt": "",
+    "replace_find": "",
+    "replace_with": "",
+    "replace_fields": [],
+    "replace_regex": False,
+    "replace_case": False,
+    "media_replace": False,
 }
 
 RESET_GROUPS = {
@@ -52,7 +63,9 @@ RESET_GROUPS = {
     "display": ["theme", "pdf_mode"],
     "nadeshiko": ["nadeshiko_api_key", "mal_profile"],
     "media": ["media_field", "media_search_field", "media_categories", "media_fallback"],
-    "autotag": ["autotag_tags", "autotag_min", "autotag_max", "autotag_decks", "autotag_mode", "autotag_prompt"],
+    "mass": ["autotag_tags", "autotag_min", "autotag_max", "autotag_decks", "autotag_mode", "autotag_prompt",
+             "mass_action", "mass_describe", "mass_search", "edit_fields", "edit_prompt", "replace_find",
+             "replace_with", "replace_fields", "replace_regex", "replace_case", "media_replace"],
 }
 
 _lock = threading.Lock()
@@ -128,6 +141,8 @@ def set_settings(data: dict = Body(...)):
             except (TypeError, ValueError):
                 continue
         if k == "autotag_mode" and v not in autotag.MODES:
+            continue
+        if k == "mass_action" and v not in massupdate.ACTIONS:
             continue
         if k in DEFAULTS:
             s[k] = v
@@ -326,35 +341,56 @@ def nadeshiko_use(data: dict = Body(...)):
     return nadeshiko.view()
 
 
-@app.post("/api/autotag/start")
-def autotag_start(data: dict = Body(...)):
+def _mass_call(fn, *args):
+    try:
+        return fn(*args)
+    except (massupdate.MassError, anki.AnkiError, media.MediaError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/mass/write-search")
+def mass_write_search(data: dict = Body(...)):
     s = load_settings()
     try:
-        started = autotag.start(data.get("provider") or s["provider"], s, data.get("decks"), data.get("mode"),
-                                data.get("tags"), data.get("min"), data.get("max"), data.get("prompt", ""))
-    except autotag.TagError as e:
+        return _mass_call(massupdate.write_search, data.get("provider") or s["provider"], s, data.get("decks"), data.get("text"))
+    except (RuntimeError, ValueError) as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/mass/find")
+def mass_find(data: dict = Body(...)):
+    return _mass_call(massupdate.find, data.get("decks"), data.get("search", ""))
+
+
+@app.post("/api/mass/start")
+def mass_start(data: dict = Body(...)):
+    s = load_settings()
+    started = _mass_call(massupdate.start, data.get("action"), data.get("provider") or s["provider"], s,
+                         data.get("decks"), data.get("search", ""), data.get("options") or {})
     if not started:
-        raise HTTPException(409, "Tagging is already running.")
-    return autotag.view()
+        raise HTTPException(409, "A preview is already running.")
+    return massupdate.view()
 
 
-@app.get("/api/autotag/state")
-def autotag_state():
-    return autotag.view()
+@app.get("/api/mass/state")
+def mass_state():
+    return massupdate.view()
 
 
-@app.post("/api/autotag/cancel")
-def autotag_cancel():
-    return {"cancelled": autotag.cancel()}
+@app.post("/api/mass/cancel")
+def mass_cancel():
+    return {"cancelled": massupdate.cancel()}
 
 
-@app.post("/api/autotag/apply")
-def autotag_apply(data: dict = Body(...)):
+@app.post("/api/mass/apply")
+def mass_apply(data: dict = Body(...)):
     try:
         ids = [int(i) for i in data.get("ids") or []]
-        return {**autotag.apply(ids), "state": autotag.view()}
     except (TypeError, ValueError):
         raise HTTPException(400, "Bad note list.")
-    except (autotag.TagError, anki.AnkiError) as e:
-        raise HTTPException(400, str(e))
+    return {**_mass_call(massupdate.apply, ids), "state": massupdate.view()}
+
+
+@app.post("/api/mass/undo")
+def mass_undo():
+    return {**_mass_call(massupdate.undo), "state": massupdate.view()}
