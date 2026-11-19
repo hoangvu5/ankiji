@@ -409,8 +409,8 @@ def _do_media(notes, opt, settings, job):
     def one(n):
         job.check()
         old = n["fields"][target]
-        m = media.ID_RE.search(old)
-        c = media.segment(key, m.group(1), mine) if m else None
+        sid = media.sentence_id(old)
+        c = media.segment(key, sid, mine) if sid else None
         how = "same sentence" if c else "new search"
         if not c:
             w = n["fields"].get(word) if word in n["fields"] else next(iter(n["fields"].values()), "")
@@ -612,11 +612,11 @@ def apply(ids):
     files = {}
     for r in ok:
         files.update(r.get("files") or {})
-    for fname, url in media.files_to_store([list(files)], files).items():
-        try:  # Anki downloads the clip into its media folder
-            anki.invoke("storeMediaFile", filename=fname, url=url)
-        except anki.AnkiError as e:
-            errors.append(f"{fname}: {e}")
+    saved, store_errors = media.store(anki.invoke, files)
+    errors += store_errors
+    for r in ok:
+        for v in r["fields"].values():
+            v[1] = media.rename(v[1], saved)
     actions, owner = [], []
     for r in ok:
         if r["fields"]:

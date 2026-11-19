@@ -24,3 +24,10 @@ fake Nadeshiko, and in the browser (light and dark).
 
 Not verified yet: against the real Anki (`updateNoteFields`, `findNotes` with AI-written searches)
 and real AI providers for search writing and editing.
+
+## 2026-11-19: Clips missing on the iPhone
+
+Anki saved the mixed-case clip names (`nadeshiko_14nq3br9-eY2.mp4`) in lowercase, so the cards
+pointed at names that exist only on case-insensitive Windows: Check Media showed 90 missing and 90
+unused. Clip names are now lowercase (with the capitals encoded so the sentence ID can be read
+back), and cards use the name Anki returns. The existing notes need a one-time repair.

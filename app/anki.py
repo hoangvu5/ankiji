@@ -3,7 +3,7 @@ import re
 
 import requests
 
-from .media import files_to_store
+from .media import files_to_store, rename, store
 
 ANKI_URL = "http://127.0.0.1:8765"
 REVERSED = "Basic (and reversed card)"
@@ -114,11 +114,8 @@ def add(cards, deck, model, direction, scope, media_files=None):
     if deck not in invoke("deckNames"):
         invoke("createDeck", deck=deck)
     added, dupes, errors = 0, 0, []
-    for fname, url in files_to_store(rows, media_files).items():
-        try:  # Anki downloads the file into its media folder
-            invoke("storeMediaFile", filename=fname, url=url)
-        except AnkiError as e:
-            errors.append(f"{fname}: {e}")
+    saved, errors = store(invoke, files_to_store(rows, media_files))
+    rows = [[rename(v, saved) for v in r] for r in rows]
     for r, c in zip(rows, cards):
         try:
             invoke("addNote", note=_note(deck, model, names, r, c.get("tags", []), scope))
