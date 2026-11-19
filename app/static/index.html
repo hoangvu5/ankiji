@@ -355,7 +355,17 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     </section>
 
     <section class="card">
-      <h2><span class="step">2</span> Tags per card</h2>
+      <h2><span class="step">2</span> Prompt</h2>
+      <div class="row" style="align-items:baseline">
+        <label for="tagPrompt" style="flex:1">When to use each tag (optional)</label>
+        <span id="tagPromptSaved" class="saved" style="flex:0 0 auto"></span>
+      </div>
+      <textarea id="tagPrompt" rows="6" maxlength="4000" placeholder="food: anything you can eat or drink, not cooking verbs&#10;verb::godan: only godan verbs, never ichidan&#10;kanji: cards that teach a single kanji"></textarea>
+      <div class="hint">Explain what each tag means, or anything else the AI should know. The tag list and the number of tags still decide what is allowed. Changing this asks the AI again for every card.</div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">3</span> Tags per card</h2>
       <div class="row numrow">
         <label for="tagMin">At least <input id="tagMin" type="number" min="0" step="1"></label>
         <label for="tagMax">At most <input id="tagMax" type="number" min="1" step="1"></label>
@@ -367,7 +377,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 
   <div>
     <section class="card">
-      <h2><span class="step">3</span> Decks to tag</h2>
+      <h2><span class="step">4</span> Decks to tag</h2>
       <div class="toolbar" style="margin-bottom:8px">
         <span class="count" id="tagDeckCount"></span>
         <button id="tagDecksAll" class="small">Select all</button>
@@ -377,7 +387,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     </section>
 
     <section class="card">
-      <h2><span class="step">4</span> Cards that already have tags</h2>
+      <h2><span class="step">5</span> Cards that already have tags</h2>
       <div id="tagModes">
         <label class="check"><input type="radio" name="tagMode" value="add"><span>Add<small>Keep their tags and add the AI's tags</small></span></label>
         <label class="check"><input type="radio" name="tagMode" value="overwrite"><span>Overwrite<small>Replace their tags with the AI's tags</small></span></label>
@@ -386,7 +396,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
     </section>
 
     <section class="card">
-      <h2><span class="step">5</span> Find tags</h2>
+      <h2><span class="step">6</span> Find tags</h2>
       <label for="tagProvider">AI</label>
       <select id="tagProvider"></select>
       <div class="provider-detail"><span id="tagProviderStatus" class="hint" style="margin:0"></span><button class="link" id="tagProviderRecheck" style="font-size:13px">Check again</button><button class="link" id="tagProviderGuide" style="font-size:13px" hidden></button></div>
@@ -398,7 +408,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 </div>
 
 <section class="card" id="tagReview" hidden>
-  <h2><span class="step">6</span> Review, then apply</h2>
+  <h2><span class="step">7</span> Review, then apply</h2>
   <div class="toolbar">
     <span class="count" id="tagCount"></span>
     <button id="tagSelectAll">Select all</button>
@@ -627,7 +637,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <label class="check"><input type="checkbox" value="prompt"><span>Card prompts<small>Goes back to the built-in Japanese and Mandarin prompts. Your own prompts are deleted.</small></span></label>
   <label class="check"><input type="checkbox" value="key"><span>OpenAI API key<small>Deletes the saved key from this computer</small></span></label>
   <label class="check"><input type="checkbox" value="display"><span>Theme and PDF reading option</span></label>
-  <label class="check"><input type="checkbox" value="autotag"><span>Auto-tag choices<small>Tag list, tags per card, decks and what to do with tagged cards</small></span></label>
+  <label class="check"><input type="checkbox" value="autotag"><span>Auto-tag choices<small>Tag list, tagging prompt, tags per card, decks and what to do with tagged cards</small></span></label>
   <label class="check"><input type="checkbox" value="nadeshiko"><span>Nadeshiko key and MyAnimeList link<small>Saved Nadeshiko search results are kept</small></span></label>
   <div class="row" style="justify-content:flex-end;margin-top:16px">
     <button id="resetCancel" style="flex:0 0 auto">Cancel</button>
@@ -1324,7 +1334,7 @@ const tagNum = sel => { const v = $(sel).value.trim(); return /^\d+$/.test(v) ? 
 function tagMode(){ return $("#tagModes").querySelector("input:checked")?.value || "add"; }
 function tagValues(){
   if (!("autotag_tags" in state.settings)) return {};  // settings not loaded yet: don't overwrite them with blanks
-  const out = {autotag_tags: tagList(), autotag_mode: tagMode()};
+  const out = {autotag_tags: tagList(), autotag_mode: tagMode(), autotag_prompt: $("#tagPrompt").value};
   if (!isNaN(tagNum("#tagMin"))) out.autotag_min = tagNum("#tagMin");
   if (!isNaN(tagNum("#tagMax"))) out.autotag_max = tagNum("#tagMax");
   if (state.tag.decks) out.autotag_decks = [...state.tag.decks];
@@ -1332,6 +1342,7 @@ function tagValues(){
 }
 function fillTagForm(s){
   $("#tagList").value = (s.autotag_tags || []).join("\n");
+  $("#tagPrompt").value = s.autotag_prompt || "";
   $("#tagMin").value = s.autotag_min; $("#tagMax").value = s.autotag_max;
   const m = $("#tagModes").querySelector(`input[value="${s.autotag_mode}"]`) || $("#tagModes").querySelector("input");
   m.checked = true;
@@ -1361,6 +1372,10 @@ $("#tagList").addEventListener("input", () => {
   tagCheck();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => { await saveNow(); flash("#tagSaved", "Saved"); }, 700);
+});
+$("#tagPrompt").addEventListener("input", () => {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => { await saveNow(); flash("#tagPromptSaved", "Saved"); }, 700);
 });
 ["#tagMin", "#tagMax"].forEach(id => $(id).addEventListener("input", () => { tagCheck(); remember(); }));
 $("#tagModes").querySelectorAll("input").forEach(i => i.addEventListener("change", remember));
@@ -1414,7 +1429,7 @@ $("#tagRun").onclick = async () => {
   notice("#tagApplyStatus");
   try {
     renderTagState(await post("/api/autotag/start", {provider: $("#provider").value, decks: tagChosenDecks(),
-      mode: tagMode(), tags: tagList(), min: tagNum("#tagMin"), max: tagNum("#tagMax")}));
+      mode: tagMode(), tags: tagList(), min: tagNum("#tagMin"), max: tagNum("#tagMax"), prompt: $("#tagPrompt").value}));
     tagWatch();
   } catch (e) { notice("#tagStatus", "bad", esc(e.message)); }
 };

@@ -121,9 +121,9 @@ def _save(cache):
     os.replace(tmp, CACHE_PATH)
 
 
-def signature(tags, mn, mx):
-    """A cached answer only counts for the same tag list and limits."""
-    body = json.dumps([sorted(t.lower() for t in tags), mn, mx])
+def signature(tags, mn, mx, prompt=""):
+    """A cached answer only counts for the same tag list, limits and tagging prompt."""
+    body = json.dumps([sorted(t.lower() for t in tags), mn, mx, prompt.strip()], ensure_ascii=False)
     return hashlib.sha1(body.encode("utf-8")).hexdigest()[:16]
 
 
@@ -141,6 +141,12 @@ Rules:
 - Order each note's tags from most to least specific. Never repeat a tag. Never invent a tag.
 - Answer for every note you are given, exactly once, using its "id".
 """
+
+GUIDE = """
+The user's notes on when to use each tag. Follow them, but never break the rules above:
+{prompt}
+"""
+PROMPT_CHARS = 4000
 
 HINT = '{"notes":[{"id":"n1","tags":["..."]}]}'
 
@@ -201,10 +207,12 @@ def check_answer(keys, answer, allowed, mn, mx):
     return good, bad
 
 
-def tag_batch(provider, settings, notes, tags, mn, mx, job):
+def tag_batch(provider, settings, notes, tags, mn, mx, job, prompt=""):
     """Returns ({note_id: tags}, {note_id: reason}) for one batch, retrying only the notes that broke the rules."""
     allowed = {t.lower(): t for t in tags}
     system = SYSTEM.format(tag_list="\n".join(f"- {t}" for t in tags), count_rule=_count_rule(mn, mx))
+    if prompt.strip():
+        system += GUIDE.format(prompt=prompt.strip())
     schema = _schema(tags)
     by_key = {f"n{i + 1}": n for i, n in enumerate(notes)}
     todo, done, bad = list(by_key), {}, {}
@@ -263,7 +271,7 @@ def _set_job(**kw):
         JOB.update(kw)
 
 
-def _run(provider, settings, decks, mode, tags, mn, mx, job):
+def _run(provider, settings, decks, mode, tags, mn, mx, prompt, job):
     try:
         _set_job(phase="read", done=0, total=0)
         notes = read_notes(decks)
@@ -271,7 +279,7 @@ def _run(provider, settings, decks, mode, tags, mn, mx, job):
             raise TagError("These decks have no notes.")
         skipped = [n for n in notes if mode == "skip" and n["tags"]]
         targets = [n for n in notes if not (mode == "skip" and n["tags"])]
-        sig = signature(tags, mn, mx)
+        sig = signature(tags, mn, mx, prompt)
         allowed = _lower(tags)
         with _lock:
             cached = _load().get("notes", {})
@@ -287,7 +295,7 @@ def _run(provider, settings, decks, mode, tags, mn, mx, job):
         _set_job(phase="ai", done=0, total=len(todo))
         workers = 3 if provider == "openai" else 2
         with ThreadPoolExecutor(workers) as pool:
-            futures = {pool.submit(tag_batch, provider, settings, b, tags, mn, mx, job): b for b in batches}
+            futures = {pool.submit(tag_batch, provider, settings, b, tags, mn, mx, job, prompt): b for b in batches}
             for f in as_completed(futures):
                 b = futures[f]
                 try:
@@ -338,7 +346,7 @@ def _run(provider, settings, decks, mode, tags, mn, mx, job):
         _set_job(running=False, phase="")
 
 
-def start(provider, settings, decks, mode, tags, mn, mx):
+def start(provider, settings, decks, mode, tags, mn, mx, prompt=""):
     if mode not in MODES:
         raise TagError("Choose what to do with existing tags.")
     decks = [str(d) for d in decks or [] if str(d).strip()]
@@ -346,13 +354,16 @@ def start(provider, settings, decks, mode, tags, mn, mx):
         raise TagError("Choose at least one deck.")
     tags = clean_tags(tags)
     mn, mx = check_options(tags, mn, mx)
+    prompt = str(prompt or "")
+    if len(prompt) > PROMPT_CHARS:
+        raise TagError(f"The tagging prompt is too long. Keep it under {PROMPT_CHARS} characters.")
     job = llm.Job()
     with _lock:
         if JOB["running"]:
             return False
         JOB.update(running=True, phase="start", done=0, total=0, result=None, rows=[], summary=None, mode=mode)
         _current["job"] = job
-    threading.Thread(target=_run, args=(provider, settings, decks, mode, tags, mn, mx, job), daemon=True).start()
+    threading.Thread(target=_run, args=(provider, settings, decks, mode, tags, mn, mx, prompt, job), daemon=True).start()
     return True
 
 

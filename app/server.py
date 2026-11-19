@@ -41,6 +41,7 @@ DEFAULTS = {
     "autotag_max": 3,
     "autotag_decks": [],
     "autotag_mode": "add",
+    "autotag_prompt": "",
 }
 
 RESET_GROUPS = {
@@ -51,7 +52,7 @@ RESET_GROUPS = {
     "display": ["theme", "pdf_mode"],
     "nadeshiko": ["nadeshiko_api_key", "mal_profile"],
     "media": ["media_field", "media_search_field", "media_categories", "media_fallback"],
-    "autotag": ["autotag_tags", "autotag_min", "autotag_max", "autotag_decks", "autotag_mode"],
+    "autotag": ["autotag_tags", "autotag_min", "autotag_max", "autotag_decks", "autotag_mode", "autotag_prompt"],
 }
 
 _lock = threading.Lock()
@@ -330,7 +331,7 @@ def autotag_start(data: dict = Body(...)):
     s = load_settings()
     try:
         started = autotag.start(data.get("provider") or s["provider"], s, data.get("decks"), data.get("mode"),
-                                data.get("tags"), data.get("min"), data.get("max"))
+                                data.get("tags"), data.get("min"), data.get("max"), data.get("prompt", ""))
     except autotag.TagError as e:
         raise HTTPException(400, str(e))
     if not started:
