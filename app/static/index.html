@@ -137,7 +137,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 .mediabar .kinds{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
 .mediabar .kinds label{display:flex;gap:6px;align-items:center;font-weight:500;margin:4px 0}
 .mcell{display:flex;gap:10px;min-width:330px;align-items:flex-start}
-.mcell img{width:140px;border-radius:6px;border:1px solid var(--line);display:block;background:#000}
+.mcell video{width:180px;border-radius:6px;border:1px solid var(--line);display:block;background:#000}
 .mcell .ja{font-size:15px}
 .mcell .en{font-size:13px;color:var(--muted)}
 .mcell .src{font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -173,8 +173,18 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 .numrow input{width:76px}
 .tagcell{display:flex;flex-wrap:wrap;gap:4px;min-width:140px}
 .badge.gone{background:var(--bad-soft);color:var(--bad);text-decoration:line-through}
-#tagTable td{vertical-align:middle}
-#tagTable td.txt{max-width:280px;overflow-wrap:anywhere}
+#massTable td{vertical-align:top}
+#massTable td.txt{max-width:240px;overflow-wrap:anywhere}
+#massTable td.diffcell{max-width:380px;overflow-wrap:anywhere;font:12.5px/1.45 var(--mono);white-space:pre-wrap}
+#massTable .fname{font-size:11.5px;font-weight:600;color:var(--muted);margin-top:4px;white-space:normal;font-family:inherit}
+#massTable td.diffcell .fname:first-child{margin-top:0}
+#massTable del{background:var(--bad-soft);color:var(--bad)}
+#massTable ins{background:var(--accent-soft);color:var(--accent);text-decoration:none}
+.ideas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ideas button{font-size:12.5px;padding:3px 10px;border-radius:999px}
+.fieldticks{display:flex;flex-wrap:wrap;gap:4px 16px}
+.fieldticks label{display:flex;gap:6px;align-items:center;font-weight:500;margin:4px 0}
+input.mono{font-family:var(--mono);font-size:13px}
 </style>
 </head>
 <body>
@@ -182,7 +192,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <h1>Ankiji</h1>
   <nav class="tabs" role="tablist" aria-label="Pages">
     <button type="button" role="tab" data-tab="cardsTab">Create cards</button>
-    <button type="button" role="tab" data-tab="autotagTab">Auto-tag</button>
+    <button type="button" role="tab" data-tab="massTab">Mass update</button>
     <button type="button" role="tab" data-tab="nadeshikoTab">Nadeshiko</button>
     <button type="button" role="tab" data-tab="guideTab">Setup guide</button>
   </nav>
@@ -341,81 +351,144 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 </section>
 </main>
 
-<main id="autotagTab" hidden>
+<main id="massTab" hidden>
 <div class="grid">
   <div>
     <section class="card">
-      <h2><span class="step">1</span> Tags the AI may use</h2>
-      <div class="row" style="align-items:baseline">
-        <label for="tagList" style="flex:1">Tag list</label>
-        <span id="tagSaved" class="saved" style="flex:0 0 auto"></span>
-      </div>
-      <textarea id="tagList" rows="12" spellcheck="false" placeholder="grammar::particles&#10;verb::godan&#10;food"></textarea>
-      <div class="hint" id="tagListHint"></div>
-    </section>
-
-    <section class="card">
-      <h2><span class="step">2</span> Prompt</h2>
-      <div class="row" style="align-items:baseline">
-        <label for="tagPrompt" style="flex:1">When to use each tag (optional)</label>
-        <span id="tagPromptSaved" class="saved" style="flex:0 0 auto"></span>
-      </div>
-      <textarea id="tagPrompt" rows="6" maxlength="4000" placeholder="food: anything you can eat or drink, not cooking verbs&#10;verb::godan: only godan verbs, never ichidan&#10;kanji: cards that teach a single kanji"></textarea>
-      <div class="hint">Explain what each tag means, or anything else the AI should know. The tag list and the number of tags still decide what is allowed. Changing this asks the AI again for every card.</div>
-    </section>
-
-    <section class="card">
-      <h2><span class="step">3</span> Tags per card</h2>
-      <div class="row numrow">
-        <label for="tagMin">At least <input id="tagMin" type="number" min="0" step="1"></label>
-        <label for="tagMax">At most <input id="tagMax" type="number" min="1" step="1"></label>
-      </div>
-      <div class="hint">The AI picks the most specific tags that fit, within these limits.</div>
-      <div id="tagOptsWarn"></div>
-    </section>
-  </div>
-
-  <div>
-    <section class="card">
-      <h2><span class="step">4</span> Decks to tag</h2>
+      <h2><span class="step">1</span> Decks</h2>
       <div class="toolbar" style="margin-bottom:8px">
         <span class="count" id="tagDeckCount"></span>
         <button id="tagDecksAll" class="small">Select all</button>
       </div>
       <div id="tagDecks" class="decklist"></div>
-      <div class="hint">Subdecks are included. The AI reads each card's first two fields.</div>
+      <div class="hint">Subdecks are included.</div>
     </section>
 
     <section class="card">
-      <h2><span class="step">5</span> Cards that already have tags</h2>
-      <div id="tagModes">
-        <label class="check"><input type="radio" name="tagMode" value="add"><span>Add<small>Keep their tags and add the AI's tags</small></span></label>
-        <label class="check"><input type="radio" name="tagMode" value="overwrite"><span>Overwrite<small>Replace their tags with the AI's tags</small></span></label>
-        <label class="check"><input type="radio" name="tagMode" value="skip"><span>Skip tagged<small>Only tag cards that have no tags yet</small></span></label>
+      <h2><span class="step">2</span> Which notes</h2>
+      <label for="massDescribe">Describe them (optional)</label>
+      <textarea id="massDescribe" rows="3" placeholder="Cards with an image and an mp3 in Media"></textarea>
+      <div class="ideas" id="massSearchIdeas"></div>
+      <div style="margin-top:8px"><button id="massWrite">Write search with AI</button></div>
+      <label for="massSearch">Anki search</label>
+      <input id="massSearch" type="text" spellcheck="false" class="mono" placeholder="Blank = every note in the decks">
+      <div class="hint" id="massExplain">The same search as in Anki's Browse window. You can type it yourself.</div>
+      <div class="toolbar" style="margin-top:8px"><button id="massFind">Find notes</button><span class="count" id="massFound"></span></div>
+      <div id="massFindStatus"></div>
+    </section>
+  </div>
+
+  <div>
+    <section class="card">
+      <h2><span class="step">3</span> What to do</h2>
+      <div id="massActions">
+        <label class="check"><input type="radio" name="massAction" value="tag"><span>Add tags<small>The AI picks tags from your own list</small></span></label>
+        <label class="check"><input type="radio" name="massAction" value="edit"><span>Edit with AI<small>The AI changes the fields you tick, following your instructions</small></span></label>
+        <label class="check"><input type="radio" name="massAction" value="replace"><span>Find and replace<small>Swap exact text in fields. No AI, instant</small></span></label>
+        <label class="check"><input type="radio" name="massAction" value="media"><span>Attach media clip<small>A Nadeshiko video clip with subtitles, as one .mp4</small></span></label>
       </div>
     </section>
 
+    <div data-act="tag">
+      <section class="card">
+        <h2><span class="step">4</span> Tags the AI may use</h2>
+        <div class="row" style="align-items:baseline">
+          <label for="tagList" style="flex:1">Tag list</label>
+          <span id="tagSaved" class="saved" style="flex:0 0 auto"></span>
+        </div>
+        <textarea id="tagList" rows="10" spellcheck="false" placeholder="grammar::particles&#10;verb::godan&#10;food"></textarea>
+        <div class="hint" id="tagListHint"></div>
+        <div class="row" style="align-items:baseline;margin-top:10px">
+          <label for="tagPrompt" style="flex:1">When to use each tag (optional)</label>
+          <span id="tagPromptSaved" class="saved" style="flex:0 0 auto"></span>
+        </div>
+        <textarea id="tagPrompt" rows="5" maxlength="4000" placeholder="food: anything you can eat or drink, not cooking verbs&#10;verb::godan: only godan verbs, never ichidan"></textarea>
+        <div class="hint">Changing the list, the limits or this text asks the AI again for every card.</div>
+        <label>Tags per card</label>
+        <div class="row numrow">
+          <label for="tagMin">At least <input id="tagMin" type="number" min="0" step="1"></label>
+          <label for="tagMax">At most <input id="tagMax" type="number" min="1" step="1"></label>
+        </div>
+        <div id="tagOptsWarn"></div>
+        <label>Cards that already have tags</label>
+        <div id="tagModes">
+          <label class="check"><input type="radio" name="tagMode" value="add"><span>Add<small>Keep their tags and add the AI's tags</small></span></label>
+          <label class="check"><input type="radio" name="tagMode" value="overwrite"><span>Overwrite<small>Replace their tags with the AI's tags</small></span></label>
+          <label class="check"><input type="radio" name="tagMode" value="skip"><span>Skip tagged<small>Only tag cards that have no tags yet</small></span></label>
+        </div>
+      </section>
+    </div>
+
+    <div data-act="edit">
+      <section class="card">
+        <h2><span class="step">4</span> What the AI should change</h2>
+        <label>Fields the AI may change</label>
+        <div id="editFields" class="fieldticks"></div>
+        <div class="row" style="align-items:baseline;margin-top:10px">
+          <label for="editPrompt" style="flex:1">Instructions</label>
+          <span id="editPromptSaved" class="saved" style="flex:0 0 auto"></span>
+        </div>
+        <textarea id="editPrompt" rows="5" maxlength="4000" placeholder="Remove the image and the [sound:...mp3], keep the subtitles"></textarea>
+        <div class="ideas" id="editIdeas"></div>
+        <div class="hint">The AI sees every field of the note but only changes the ticked ones.</div>
+      </section>
+    </div>
+
+    <div data-act="replace">
+      <section class="card">
+        <h2><span class="step">4</span> Find and replace</h2>
+        <label for="replaceFind">Find</label>
+        <input id="replaceFind" type="text" spellcheck="false" class="mono">
+        <label for="replaceWith">Replace with</label>
+        <input id="replaceWith" type="text" spellcheck="false" class="mono" placeholder="Blank = remove it">
+        <div class="row" style="gap:18px;margin-top:8px">
+          <label class="check" style="margin:0;flex:0 0 auto"><input type="checkbox" id="replaceRegex"><span>Pattern (regex)<small><code>$1</code> puts back a group</small></span></label>
+          <label class="check" style="margin:0;flex:0 0 auto"><input type="checkbox" id="replaceCase"><span>Match case</span></label>
+        </div>
+        <label>In these fields</label>
+        <div id="replaceFields" class="fieldticks"></div>
+        <div class="hint">Tick none to search every field. It works on the field's HTML, like Anki's own Find and Replace.</div>
+      </section>
+    </div>
+
+    <div data-act="media">
+      <section class="card">
+        <h2><span class="step">4</span> Media clip</h2>
+        <div class="row">
+          <div><label for="massMediaField">Put the clip in</label><select id="massMediaField"></select></div>
+          <div><label for="massWordField">Word to search from</label><select id="massWordField"></select></div>
+        </div>
+        <label class="check"><input type="checkbox" id="mediaReplace"><span>Replace media that is already there<small>If it came from Nadeshiko, the same sentence comes back as a video clip. Otherwise a new sentence is searched.</small></span></label>
+        <div class="hint" id="massMediaHint">Uses your Nadeshiko key and anime, and the kinds of media chosen under Options in <b>Create cards</b>.</div>
+      </section>
+    </div>
+
     <section class="card">
-      <h2><span class="step">6</span> Find tags</h2>
-      <label for="tagProvider">AI</label>
-      <select id="tagProvider"></select>
-      <div class="provider-detail"><span id="tagProviderStatus" class="hint" style="margin:0"></span><button class="link" id="tagProviderRecheck" style="font-size:13px">Check again</button><button class="link" id="tagProviderGuide" style="font-size:13px" hidden></button></div>
-      <div style="margin-top:14px"><button id="tagRun" class="primary big">Find tags</button></div>
-      <div class="hint">Nothing changes in Anki until you apply. Cards tagged before and not edited since are not sent to the AI again.</div>
-      <div id="tagStatus"></div>
+      <h2><span class="step">5</span> Preview</h2>
+      <div id="massAiBox">
+        <label for="tagProvider">AI</label>
+        <select id="tagProvider"></select>
+        <div class="provider-detail"><span id="tagProviderStatus" class="hint" style="margin:0"></span><button class="link" id="tagProviderRecheck" style="font-size:13px">Check again</button><button class="link" id="tagProviderGuide" style="font-size:13px" hidden></button></div>
+      </div>
+      <div style="margin-top:14px"><button id="massRun" class="primary big">Preview changes</button></div>
+      <div class="hint">Nothing changes in Anki until you apply.</div>
+      <div id="massStatus"></div>
+      <div id="massUndoBox" class="toolbar" style="margin-top:10px" hidden><button id="massUndo">Undo last apply</button><span class="count" id="massUndoInfo"></span></div>
+      <div id="massUndoStatus"></div>
     </section>
   </div>
 </div>
 
-<section class="card" id="tagReview" hidden>
-  <h2><span class="step">7</span> Review, then apply</h2>
+<section class="card" id="massReview" hidden>
+  <h2><span class="step">6</span> Review, then apply</h2>
   <div class="toolbar">
-    <span class="count" id="tagCount"></span>
-    <button id="tagSelectAll">Select all</button>
-    <button id="tagApply" class="primary">Apply</button>
+    <span class="count" id="massCount"></span>
+    <button id="massSelectAll">Select all</button>
+    <button id="massApply" class="primary">Apply</button>
   </div>
-  <div class="tablewrap"><table id="tagTable"></table></div>
-  <div id="tagApplyStatus"></div>
+  <div class="hint">Close Anki's Browse window before applying: a note open there can keep its old text.</div>
+  <div class="tablewrap"><table id="massTable"></table></div>
+  <div id="massApplyStatus"></div>
 </section>
 </main>
 
@@ -574,7 +647,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
       <li>Make a free account at <code>nadeshiko.co</code>, then open <code>nadeshiko.co/user/developer</code> and create an API key. Copy it.</li>
       <li>In this app open the <b>Nadeshiko</b> tab and paste the key into <b>Nadeshiko API key</b>.</li>
       <li>Optional: paste your MyAnimeList profile link (your list must be public) and click <b>Update from MyAnimeList</b>. Then sentences come from anime you know first.</li>
-      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a screenshot, the audio, and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry images and audio.</li>
+      <li>After making cards, click <b>Fill media</b> above the review table. Each card gets a short video clip (picture and sound in one .mp4) and the Japanese and English subtitles. Send the cards with <b>Straight into Anki</b>, because an import file can't carry video.</li>
     </ol>
   </section>
 
@@ -637,7 +710,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
   <label class="check"><input type="checkbox" value="prompt"><span>Card prompts<small>Goes back to the built-in Japanese and Mandarin prompts. Your own prompts are deleted.</small></span></label>
   <label class="check"><input type="checkbox" value="key"><span>OpenAI API key<small>Deletes the saved key from this computer</small></span></label>
   <label class="check"><input type="checkbox" value="display"><span>Theme and PDF reading option</span></label>
-  <label class="check"><input type="checkbox" value="autotag"><span>Auto-tag choices<small>Tag list, tagging prompt, tags per card, decks and what to do with tagged cards</small></span></label>
+  <label class="check"><input type="checkbox" value="mass"><span>Mass update choices<small>Decks, search, action, tag list, prompts and find and replace</small></span></label>
   <label class="check"><input type="checkbox" value="nadeshiko"><span>Nadeshiko key and MyAnimeList link<small>Saved Nadeshiko search results are kept</small></span></label>
   <div class="row" style="justify-content:flex-end;margin-top:16px">
     <button id="resetCancel" style="flex:0 0 auto">Cancel</button>
@@ -1011,7 +1084,7 @@ $("#generate").onclick = async () => {
 // ---------- review ----------
 function payload(cards){
   const media_files = {};
-  cards.forEach(c => { const m = chosen(c); if (m) { media_files[m.image_file] = m.image; media_files[m.audio_file] = m.audio; } });
+  cards.forEach(c => { const m = chosen(c); if (m) media_files[m.video_file] = m.video; });
   return { cards: cards.map(c => ({fields:c.fields, tags:c.tags})), deck: currentDeck(), media_files,
            model: currentModel(), direction: $("#direction").value, dup_scope: $("#dupScope").value, fields: state.reviewFields };
 }
@@ -1105,7 +1178,7 @@ function pickMediaField(fields){
   return fields.find(f => f.trim().toLowerCase() === "media") || "";
 }
 function mediaKinds(){ return [...$("#mediaKinds").querySelectorAll("input:checked")].map(i => i.value); }
-function mediaHtml(m){ return `<img src="${m.image_file}"> [sound:${m.audio_file}]<br>${m.ja_html}<br>${esc(m.en)}`; }
+function mediaHtml(m){ return `[sound:${m.video_file}]<br>${m.ja_html}<br>${esc(m.en)}`; }
 function applyMedia(c){
   const j = (state.reviewFields || state.fields).indexOf($("#mediaField").value);
   if (j < 0) return;
@@ -1138,7 +1211,7 @@ function renderMediaBar(){
   else {
     msg = info.my_anime ? ""
       : 'No anime are ticked in the <button class="link" data-goto="nadeshikoTab">Nadeshiko tab</button>, so all titles are searched.';
-    if ($("#delivery").value === "tsv") msg += " Images and audio only go into Anki with <b>Straight into Anki</b>. An import file keeps just the text.";
+    if ($("#delivery").value === "tsv") msg += " Video clips only go into Anki with <b>Straight into Anki</b>. An import file keeps just the text.";
   }
   $("#mediaInfo").innerHTML = msg.trim();
   $("#mediaInfo").hidden = !msg.trim();
@@ -1152,16 +1225,14 @@ function mediaCell(c){
   if (!m) return `<div class="mempty">${md.candidates.length ? "Media removed." : `No sentence found for <b>${esc(md.term)}</b>. Try another word or form:`}${again}
     ${md.candidates.length ? '<div class="btns"><button class="small mnext">Show sentences again</button></div>' : ""}</div>`;
   const total = md.candidates.length;
-  return `<div class="mcell"><img src="${esc(m.image)}" alt="" loading="lazy">
+  return `<div class="mcell"><video src="${esc(m.video)}" poster="${esc(m.image)}" controls preload="none"></video>
     <div><div class="ja">${m.ja_html}</div><div class="en">${esc(m.en)}${m.en_machine ? " (machine translated)" : ""}</div>
       <div class="src">${m.mine ? "★ Your anime: " : "Other title: "}${esc(m.source)}</div>
-      <div class="btns"><button class="small mplay">▶ Play</button>
-        <button class="small mnext" ${total < 2 ? "disabled" : ""}>Next sentence (${md.idx + 1}/${total})</button>
+      <div class="btns"><button class="small mnext" ${total < 2 ? "disabled" : ""}>Next sentence (${md.idx + 1}/${total})</button>
         <button class="small mremove">Remove</button></div>${again}</div></div>`;
 }
 function wireMediaCell(td, c){
   const on = (s, fn) => { const b = td.querySelector(s); if (b) b.onclick = fn; };
-  on(".mplay", () => { const m = chosen(c); if (m) new Audio(m.audio).play().catch(() => {}); });
   on(".mnext", () => { const n = c.media.candidates.length; c.media.idx = (c.media.idx + 1) % n; applyMedia(c); updateMediaRow(c); });
   on(".mremove", () => { c.media.idx = -1; applyMedia(c); updateMediaRow(c); });
   const go = () => findMedia([c], td.querySelector(".mterm").value.trim(), true);
@@ -1260,13 +1331,13 @@ $("#send").onclick = async () => {
 function showTab(id){
   document.querySelectorAll("main").forEach(m => m.hidden = m.id !== id);
   if (id === "cardsTab" && state.settings.provider) loadMediaInfo();
-  if (id === "autotagTab") loadTag();
+  if (id === "massTab") loadMass(true);
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === id));
   try { localStorage.setItem("tab", id); } catch (e) {}
   updateToTop();
 }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-{ let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (["autotagTab", "nadeshikoTab", "guideTab"].includes(s)) t = s; } catch (e) {} showTab(t); }
+{ let t = "cardsTab"; try { const s = localStorage.getItem("tab"); if (["massTab", "nadeshikoTab", "guideTab"].includes(s)) t = s; } catch (e) {} showTab(t); }
 // Shared iCloud link of the clean "Ankiji Nadeshiko" Shortcut (no API key inside). Empty until it exists.
 const CLIP_SHORTCUT_LINK = "https://www.icloud.com/shortcuts/d20bacb214db4ce9b3b19e48302ebed1";
 $("#clipLinkStep").innerHTML = CLIP_SHORTCUT_LINK
@@ -1323,8 +1394,9 @@ document.querySelectorAll("#guideTab .cmd button").forEach(b => b.onclick = asyn
   b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1500);
 });
 
-// ---------- auto-tag ----------
-state.tag = {decks: null, view: null, include: new Map()};
+// ---------- mass update ----------
+state.tag = {decks: null};
+state.mass = {view: null, include: new Map(), fields: [], editFields: null, replaceFields: null, found: null};
 function tagList(){
   const seen = new Set();
   return $("#tagList").value.split(/[\n,]/).map(t => t.trim().replace(/\s+/g, "_"))
@@ -1332,12 +1404,19 @@ function tagList(){
 }
 const tagNum = sel => { const v = $(sel).value.trim(); return /^\d+$/.test(v) ? +v : NaN; };
 function tagMode(){ return $("#tagModes").querySelector("input:checked")?.value || "add"; }
+const massAction = () => $("#massActions").querySelector("input:checked")?.value || "tag";
+const plural = (n, w) => `${n} ${w}${n===1?"":"s"}`;
 function tagValues(){
   if (!("autotag_tags" in state.settings)) return {};  // settings not loaded yet: don't overwrite them with blanks
-  const out = {autotag_tags: tagList(), autotag_mode: tagMode(), autotag_prompt: $("#tagPrompt").value};
+  const out = {autotag_tags: tagList(), autotag_mode: tagMode(), autotag_prompt: $("#tagPrompt").value,
+    mass_action: massAction(), mass_describe: $("#massDescribe").value, mass_search: $("#massSearch").value,
+    edit_prompt: $("#editPrompt").value, replace_find: $("#replaceFind").value, replace_with: $("#replaceWith").value,
+    replace_regex: $("#replaceRegex").checked, replace_case: $("#replaceCase").checked, media_replace: $("#mediaReplace").checked};
   if (!isNaN(tagNum("#tagMin"))) out.autotag_min = tagNum("#tagMin");
   if (!isNaN(tagNum("#tagMax"))) out.autotag_max = tagNum("#tagMax");
   if (state.tag.decks) out.autotag_decks = [...state.tag.decks];
+  if (state.mass.editFields) out.edit_fields = [...state.mass.editFields];
+  if (state.mass.replaceFields) out.replace_fields = [...state.mass.replaceFields];
   return out;
 }
 function fillTagForm(s){
@@ -1346,8 +1425,19 @@ function fillTagForm(s){
   $("#tagMin").value = s.autotag_min; $("#tagMax").value = s.autotag_max;
   const m = $("#tagModes").querySelector(`input[value="${s.autotag_mode}"]`) || $("#tagModes").querySelector("input");
   m.checked = true;
+  const a = $("#massActions").querySelector(`input[value="${s.mass_action}"]`) || $("#massActions").querySelector("input");
+  a.checked = true;
+  $("#massDescribe").value = s.mass_describe || "";
+  $("#massSearch").value = s.mass_search || "";
+  $("#editPrompt").value = s.edit_prompt || "";
+  $("#replaceFind").value = s.replace_find || "";
+  $("#replaceWith").value = s.replace_with || "";
+  $("#replaceRegex").checked = !!s.replace_regex; $("#replaceCase").checked = !!s.replace_case;
+  $("#mediaReplace").checked = !!s.media_replace;
   state.tag.decks = new Set(s.autotag_decks || []);
-  renderTagDecks(); tagCheck();
+  state.mass.editFields = new Set(s.edit_fields || []);
+  state.mass.replaceFields = new Set(s.replace_fields || []);
+  renderTagDecks(); tagCheck(); renderMassAction(); renderMassFields();
 }
 // What's wrong with the tag list and limits, or "" when they're fine. The server checks the same.
 function tagProblem(){
@@ -1365,27 +1455,30 @@ function tagCheck(){
     "One tag per line. Use <code>::</code> for levels, e.g. <code>grammar::particles</code>. Spaces become <code>_</code>.";
   $("#tagMax").max = Math.max(1, tags.length);
   notice("#tagOptsWarn", "warn", problem && tags.length ? esc(problem) : "");
-  renderTagRun();
+  renderMassRun();
   return problem;
 }
-$("#tagList").addEventListener("input", () => {
-  tagCheck();
+const savedText = (sel, flashSel) => $(sel).addEventListener("input", () => {
+  renderMassRun();
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => { await saveNow(); flash("#tagSaved", "Saved"); }, 700);
+  saveTimer = setTimeout(async () => { await saveNow(); if (flashSel) flash(flashSel, "Saved"); }, 700);
 });
-$("#tagPrompt").addEventListener("input", () => {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => { await saveNow(); flash("#tagPromptSaved", "Saved"); }, 700);
-});
+$("#tagList").addEventListener("input", tagCheck);
+savedText("#tagList", "#tagSaved");
+savedText("#tagPrompt", "#tagPromptSaved");
+savedText("#editPrompt", "#editPromptSaved");
+savedText("#massDescribe");
+["#replaceFind", "#replaceWith"].forEach(id => savedText(id));
 ["#tagMin", "#tagMax"].forEach(id => $(id).addEventListener("input", () => { tagCheck(); remember(); }));
-$("#tagModes").querySelectorAll("input").forEach(i => i.addEventListener("change", remember));
+["#tagModes", "#massActions"].forEach(id => $(id).querySelectorAll("input").forEach(i => i.addEventListener("change", () => { renderMassAction(); remember(); })));
+["#replaceRegex", "#replaceCase", "#mediaReplace"].forEach(id => $(id).addEventListener("change", remember));
 
 function renderTagDecks(){
   const box = $("#tagDecks");
   if (!state.anki.ok){
     box.innerHTML = '<div class="hint" style="margin:6px 0">Anki isn\'t connected. Open Anki, then click <b>Recheck</b> at the top. <button class="link" data-guide="guide-anki">Anki setup guide</button></div>';
     $("#tagDeckCount").textContent = ""; $("#tagDecksAll").hidden = true;
-    return renderTagRun();
+    return renderMassRun();
   }
   const decks = state.anki.decks || [], sel = state.tag.decks || new Set();
   box.innerHTML = decks.map(d => {
@@ -1395,10 +1488,11 @@ function renderTagDecks(){
   }).join("") || '<div class="hint">No decks yet.</div>';
   box.querySelectorAll("input").forEach(i => i.onchange = () => {
     i.checked ? state.tag.decks.add(i.value) : state.tag.decks.delete(i.value);
-    tagDeckCount(); remember();
+    tagDeckCount(); remember(); massFindSoon();
   });
   $("#tagDecksAll").hidden = !decks.length;
   tagDeckCount();
+  massFindSoon();
 }
 // Saved decks that no longer exist in Anki are kept in settings but never sent.
 const tagChosenDecks = () => (state.anki.decks || []).filter(d => state.tag.decks?.has(d));
@@ -1406,7 +1500,7 @@ function tagDeckCount(){
   const n = tagChosenDecks().length, all = n && n === (state.anki.decks || []).length;
   $("#tagDeckCount").textContent = `${n} deck${n===1?"":"s"} selected`;
   $("#tagDecksAll").textContent = all ? "Select none" : "Select all";
-  renderTagRun();
+  renderMassRun();
 }
 $("#tagDecksAll").onclick = () => {
   const all = tagChosenDecks().length === (state.anki.decks || []).length;
@@ -1414,116 +1508,265 @@ $("#tagDecksAll").onclick = () => {
   renderTagDecks(); remember();
 };
 
-const tagRunning = () => !!state.tag.view?.running;
-function renderTagRun(){
-  const btn = $("#tagRun"), run = tagRunning();
-  btn.textContent = run ? "Cancel" : "Find tags";
-  btn.classList.toggle("primary", !run); btn.classList.toggle("danger", run);
-  btn.disabled = !run && (!state.anki.ok || !tagChosenDecks().length || !!tagProblem());
+// Example prompts: a click fills the box, so people see what the page can do.
+const SEARCH_IDEAS = ["Cards with an image and an mp3 in Media", "Cards with an empty Media field", "Cards with no tags",
+  "Cards I keep forgetting", "Cards added this week", "Suspended cards"];
+const EDIT_IDEAS = ["Remove the image and the [sound:...mp3], keep the subtitles", "Remove everything, leave the field empty",
+  "Add furigana to every kanji, like 漢字[かんじ]", "Fix typos and stray HTML, change nothing else",
+  "Translate the meaning into Vietnamese and keep the English after it", "Add one short example sentence with its translation"];
+function ideas(box, list, target){
+  $(box).innerHTML = list.map(t => `<button type="button">${esc(t)}</button>`).join("");
+  $(box).querySelectorAll("button").forEach((b, i) => b.onclick = () => {
+    $(target).value = list[i]; $(target).dispatchEvent(new Event("input")); $(target).focus();
+  });
 }
-$("#tagRun").onclick = async () => {
-  if (tagRunning()) { try { await post("/api/autotag/cancel", {}); } catch (e) {} return; }
-  const problem = tagCheck();
-  if (problem) return notice("#tagStatus", "warn", esc(problem));
-  await saveNow();
-  notice("#tagApplyStatus");
-  try {
-    renderTagState(await post("/api/autotag/start", {provider: $("#provider").value, decks: tagChosenDecks(),
-      mode: tagMode(), tags: tagList(), min: tagNum("#tagMin"), max: tagNum("#tagMax"), prompt: $("#tagPrompt").value}));
-    tagWatch();
-  } catch (e) { notice("#tagStatus", "bad", esc(e.message)); }
-};
+ideas("#massSearchIdeas", SEARCH_IDEAS, "#massDescribe");
+ideas("#editIdeas", EDIT_IDEAS, "#editPrompt");
 
-let tagPoll = null;
-function tagWatch(){
-  clearTimeout(tagPoll);
-  tagPoll = setTimeout(async () => {
-    try { const v = await api("/api/autotag/state"); renderTagState(v); if (v.running) tagWatch(); }
-    catch (e) { tagWatch(); }
-  }, 700);
-}
-async function loadTag(){
-  try { const v = await api("/api/autotag/state"); renderTagState(v); if (v.running) tagWatch(); } catch (e) {}
-}
-function tagSummary(s){
-  const n = (x, w) => `${x} ${w}${x===1?"":"s"}`;
-  let msg = `Read ${n(s.notes, "note")}.`;
-  if (s.skipped) msg += ` Skipped ${s.skipped} that already had tags.`;
-  msg += ` ${s.sent} sent to the AI` + (s.cached ? `, ${s.cached} from earlier runs.` : ".");
-  msg += ` ${s.change} to change, ${s.same} already fine.`;
-  if (s.failed) msg += ` ${n(s.failed, "note")} could not be tagged because the AI kept breaking the rules.`;
-  if (s.not_done) msg += ` ${s.not_done} not done yet.`;
-  return msg;
-}
-function renderTagState(v){
-  // A run that just finished (or the first look at this page) starts with every change ticked.
-  const fresh = !state.tag.view || (state.tag.view.running && !v.running);
-  state.tag.view = v;
-  renderTagRun();
-  if (v.running){
-    const what = v.phase === "ai" ? `Asking the AI... ${v.done} of ${v.total} notes` : "Reading notes from Anki...";
-    notice("#tagStatus", "good", `<span class="spin"></span> ${what}` + (v.phase === "ai" && $("#provider").value !== "openai" ? " (subscription options can take a minute or two)" : ""));
-    $("#tagReview").hidden = true;
+// ---- which notes ----
+let massFindTimer = null;
+function massFindSoon(){ clearTimeout(massFindTimer); massFindTimer = setTimeout(() => massFind(true), 700); }
+$("#massSearch").addEventListener("input", () => { remember(); $("#massExplain").textContent = "The same search as in Anki's Browse window. You can type it yourself."; massFindSoon(); });
+$("#massSearch").addEventListener("keydown", e => { if (e.key === "Enter") massFind(); });
+let massFindSeq = 0;
+async function massFind(quiet){
+  clearTimeout(massFindTimer);
+  if (!state.anki.ok || !tagChosenDecks().length) {
+    state.mass.found = null; $("#massFound").textContent = "";
+    if (!quiet) notice("#massFindStatus", "warn", state.anki.ok ? "Choose at least one deck." : "Anki isn't connected.");
     return;
   }
-  if (v.result) notice("#tagStatus", v.result.kind, esc([v.result.message, v.summary ? tagSummary(v.summary) : ""].filter(Boolean).join(" ")));
+  const seq = ++massFindSeq;
+  if (!quiet) notice("#massFindStatus", "good", '<span class="spin"></span> Searching Anki...');
+  try {
+    const r = await post("/api/mass/find", {decks: tagChosenDecks(), search: $("#massSearch").value});
+    if (seq !== massFindSeq) return;  // a newer search already started
+    state.mass.found = r; state.mass.fields = r.fields;
+    $("#massFound").textContent = `${plural(r.count, "note")} match`;
+    notice("#massFindStatus", r.count ? "good" : "warn", r.count
+      ? "For example: " + r.sample.filter(Boolean).map(t => `<b>${esc(t.slice(0, 40))}</b>`).join(", ")
+      : "No notes match. Change the decks or the search.");
+    renderMassFields();
+  } catch (e) {
+    if (seq !== massFindSeq) return;
+    state.mass.found = null; $("#massFound").textContent = "";
+    notice("#massFindStatus", "bad", esc(e.message));
+  }
+  renderMassRun();
+}
+$("#massFind").onclick = () => massFind();
+$("#massWrite").onclick = async () => {
+  const text = $("#massDescribe").value.trim();
+  if (!text) return notice("#massFindStatus", "warn", "Describe the notes first, or click one of the examples.");
+  if (!tagChosenDecks().length) return notice("#massFindStatus", "warn", "Choose at least one deck.");
+  const btn = $("#massWrite"); btn.disabled = true;
+  notice("#massFindStatus", "good", '<span class="spin"></span> The AI is writing the search...');
+  try {
+    const r = await post("/api/mass/write-search", {provider: $("#provider").value, decks: tagChosenDecks(), text});
+    $("#massSearch").value = r.query; remember();
+    $("#massExplain").textContent = r.explain || "";
+    await massFind();
+  } catch (e) { notice("#massFindStatus", "bad", esc(e.message)); }
+  finally { btn.disabled = false; }
+};
+
+// ---- action options ----
+function renderMassAction(){
+  const a = massAction();
+  document.querySelectorAll("#massTab [data-act]").forEach(d => d.hidden = d.dataset.act !== a);
+  $("#massAiBox").hidden = !["tag", "edit"].includes(a);
+  renderMassRun();
+}
+function fieldTicks(box, set){
+  const names = [...state.mass.fields];
+  set.forEach(f => { if (!names.includes(f)) names.push(f); });  // saved choices stay visible until the next search
+  $(box).innerHTML = names.map(f => `<label><input type="checkbox" value="${esc(f)}" ${set.has(f) ? "checked" : ""}>${esc(f)}</label>`).join("")
+    || '<span class="hint" style="margin:0">Find notes first to see their fields.</span>';
+  $(box).querySelectorAll("input").forEach(i => i.onchange = () => { i.checked ? set.add(i.value) : set.delete(i.value); remember(); renderMassRun(); });
+}
+function renderMassFields(){
+  if (!state.mass.editFields) return;
+  fieldTicks("#editFields", state.mass.editFields);
+  fieldTicks("#replaceFields", state.mass.replaceFields);
+  const names = state.mass.fields.length ? state.mass.fields : [state.settings.media_field || "Media"];
+  const fill = (sel, want, fallback) => {
+    $(sel).innerHTML = names.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("");
+    $(sel).value = names.includes(want) ? want : fallback;
+  };
+  fill("#massMediaField", state.settings.media_field, names.find(f => f.toLowerCase() === "media") || names[names.length - 1]);
+  fill("#massWordField", state.settings.media_search_field, names[0]);
+}
+$("#massMediaField").onchange = () => { state.settings.media_field = $("#massMediaField").value; saveNow({media_field: $("#massMediaField").value}); };
+$("#massWordField").onchange = () => { state.settings.media_search_field = $("#massWordField").value; saveNow({media_search_field: $("#massWordField").value}); };
+
+function massOptions(){
+  const a = massAction();
+  if (a === "tag") return {tags: tagList(), min: tagNum("#tagMin"), max: tagNum("#tagMax"), mode: tagMode(), prompt: $("#tagPrompt").value};
+  if (a === "edit") return {fields: [...state.mass.editFields], prompt: $("#editPrompt").value};
+  if (a === "replace") return {find: $("#replaceFind").value, replace: $("#replaceWith").value, regex: $("#replaceRegex").checked,
+    case: $("#replaceCase").checked, fields: [...state.mass.replaceFields]};
+  return {field: $("#massMediaField").value, word_field: $("#massWordField").value, replace: $("#mediaReplace").checked};
+}
+function massProblem(){
+  if (!state.anki.ok) return "Anki isn't connected.";
+  if (!tagChosenDecks().length) return "Choose at least one deck.";
+  const a = massAction();
+  if (a === "tag") return tagProblem();
+  if (a === "edit") {
+    if (!state.mass.editFields?.size) return "Tick at least one field the AI may change.";
+    if (!$("#editPrompt").value.trim()) return "Write what the AI should change.";
+  }
+  if (a === "replace" && !$("#replaceFind").value) return "Type what to find.";
+  if (a === "media" && !state.mediaInfo.has_key) return "Add your Nadeshiko API key in the Nadeshiko tab first.";
+  return "";
+}
+
+// ---- preview ----
+const massRunning = () => !!state.mass.view?.running;
+function renderMassRun(){
+  const btn = $("#massRun"), run = massRunning();
+  if (!btn) return;
+  btn.textContent = run ? "Cancel" : "Preview changes";
+  btn.classList.toggle("primary", !run); btn.classList.toggle("danger", run);
+  btn.disabled = !run && !!massProblem();
+  btn.title = run ? "" : massProblem();
+}
+$("#massRun").onclick = async () => {
+  if (massRunning()) { try { await post("/api/mass/cancel", {}); } catch (e) {} return; }
+  const problem = massProblem();
+  if (problem) return notice("#massStatus", "warn", esc(problem));
+  await saveNow();
+  notice("#massApplyStatus"); notice("#massUndoStatus");
+  try {
+    renderMassState(await post("/api/mass/start", {action: massAction(), provider: $("#provider").value,
+      decks: tagChosenDecks(), search: $("#massSearch").value, options: massOptions()}));
+    massWatch();
+  } catch (e) { notice("#massStatus", "bad", esc(e.message)); }
+};
+
+let massPoll = null;
+function massWatch(){
+  clearTimeout(massPoll);
+  massPoll = setTimeout(async () => {
+    try { const v = await api("/api/mass/state"); renderMassState(v); if (v.running) massWatch(); }
+    catch (e) { massWatch(); }
+  }, 700);
+}
+async function loadMass(find){
+  try { const v = await api("/api/mass/state"); renderMassState(v); if (v.running) massWatch(); } catch (e) {}
+  if (find) massFindSoon();  // after the await: on page load this runs before the code below exists
+}
+const ACTION_NAMES = {tag: "Add tags", edit: "Edit with AI", replace: "Find and replace", media: "Attach media clip"};
+function renderMassState(v){
+  // A run that just finished (or the first look at this page) starts with every change ticked.
+  const fresh = !state.mass.view || (state.mass.view.running && !v.running);
+  state.mass.view = v;
+  renderMassRun();
+  const u = v.undo;
+  $("#massUndoBox").hidden = !u || v.running;
+  if (u) $("#massUndoInfo").textContent = `${ACTION_NAMES[u.action] || "Changes"} on ${plural(u.count, "note")}, ${new Date(u.time * 1000).toLocaleString()}`;
+  if (v.running){
+    const what = v.phase === "ai" ? `Asking the AI... ${v.done} of ${v.total} notes`
+      : v.phase === "media" ? `Finding clips on Nadeshiko... ${v.done} of ${v.total} notes` : "Reading notes from Anki...";
+    notice("#massStatus", "good", `<span class="spin"></span> ${what}` + (v.phase === "ai" && $("#provider").value !== "openai" ? " (subscription options can take a minute or two)" : ""));
+    $("#massReview").hidden = true;
+    return;
+  }
+  if (v.result) notice("#massStatus", v.result.kind, esc([v.result.message, v.summary].filter(Boolean).join(" ")));
   const rows = v.rows || [];
-  if (fresh) state.tag.include = new Map(rows.filter(r => r.status === "change").map(r => [r.id, true]));
-  $("#tagReview").hidden = !rows.length;
-  renderTagTable();
+  if (fresh) state.mass.include = new Map(rows.filter(r => r.status === "change").map(r => [r.id, true]));
+  $("#massReview").hidden = !rows.length;
+  renderMassTable();
 }
 function tagChips(tags, clsOf){
   return `<div class="tagcell">${tags.map(t => `<span class="badge ${clsOf(t.toLowerCase())}">${esc(t)}</span>`).join("") || '<span class="hint" style="margin:0">none</span>'}</div>`;
 }
-function renderTagTable(){
-  const rows = state.tag.view?.rows || [];
-  const head = `<tr><th><input type="checkbox" id="tagCheckAll" title="Select all / none"></th><th>#</th><th>Front</th><th>Back</th><th>Tags now</th><th>Tags after</th></tr>`;
-  $("#tagTable").innerHTML = head + rows.map((r, i) => {
-    const on = r.status === "change" && state.tag.include.get(r.id);
-    const gone = new Set((r.removed || []).map(t => t.toLowerCase())), added = new Set((r.added || []).map(t => t.toLowerCase()));
-    const after = r.status === "failed" ? `<span class="badge err">Not tagged</span> <span class="hint">${esc(r.reason)}</span>`
-      : tagChips(r.after, t => added.has(t) ? "new" : "unk") + (r.status === "applied" ? '<div class="hint">✓ Applied</div>' : "");
+// Before and after with the changed middle marked; long unchanged parts are shortened.
+function diffPair(a, b){
+  let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  let j = 0; while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++;
+  // never cut a tag in half: "<" kept, "img ..." marked reads as broken HTML
+  const open = a.lastIndexOf("<", i - 1);
+  if (open >= 0 && a.indexOf(">", open) >= i) i = open;
+  const tailStart = a.length - j, close = a.indexOf(">", tailStart), lt = a.indexOf("<", tailStart);
+  if (close >= 0 && (lt < 0 || close < lt) && a.lastIndexOf("<", tailStart - 1) > a.lastIndexOf(">", tailStart - 1)) j = Math.max(0, a.length - close - 1);
+  const head = a.slice(0, i), tail = a.slice(a.length - j);
+  const pre = esc(head.length > 80 ? "..." + head.slice(-80) : head), suf = esc(tail.length > 80 ? tail.slice(0, 80) + "..." : tail);
+  const mid = (s, tag) => s ? `<${tag}>${esc(s)}</${tag}>` : "";
+  return [pre + mid(a.slice(i, a.length - j), "del") + suf, pre + mid(b.slice(i, b.length - j), "ins") + suf];
+}
+function renderMassTable(){
+  const rows = state.mass.view?.rows || [];
+  const head = `<tr><th><input type="checkbox" id="massCheckAll" title="Select all / none"></th><th>#</th><th>Card</th><th>Now</th><th>After</th></tr>`;
+  $("#massTable").innerHTML = head + rows.map((r, i) => {
+    const on = r.status === "change" && state.mass.include.get(r.id);
+    let now = "", after = "";
+    if (r.tags){
+      const gone = new Set((r.removed || []).map(t => t.toLowerCase())), added = new Set((r.added || []).map(t => t.toLowerCase()));
+      now = tagChips(r.tags[0], t => gone.has(t) ? "gone" : "unk");
+      if (r.status !== "failed") after = tagChips(r.tags[1], t => added.has(t) ? "new" : "unk");
+    }
+    for (const [name, [a, b]] of Object.entries(r.fields || {})){
+      const [x, y] = diffPair(a, b);
+      now += `<div class="fname">${esc(name)}</div>${x || '<span class="hint" style="margin:0">empty</span>'}`;
+      after += `<div class="fname">${esc(name)}</div>${y || '<span class="hint" style="margin:0">empty</span>'}`;
+    }
+    if (r.status === "failed") after = `<span class="badge err">Not changed</span> <span class="hint">${esc(r.reason)}</span>`;
+    if (r.note) after += `<div class="hint">${esc(r.note)}</div>`;
+    if (r.status === "applied") after += '<div class="hint">✓ Applied</div>';
     return `<tr data-id="${r.id}" class="${on ? "" : "off"}">
       <td><input type="checkbox" class="inc" ${on ? "checked" : ""} ${r.status === "change" ? "" : "disabled"} aria-label="Apply to note ${i+1}"></td>
-      <td class="num">${i+1}</td><td class="txt">${esc(r.front)}</td><td class="txt">${esc(r.back)}</td>
-      <td>${tagChips(r.before, t => gone.has(t) ? "gone" : "unk")}</td><td>${after}</td></tr>`;
+      <td class="num">${i+1}</td><td class="txt">${esc(r.front)}${r.back ? `<div class="hint" style="margin:2px 0 0">${esc(r.back.slice(0, 120))}</div>` : ""}</td>
+      <td class="diffcell">${now}</td><td class="diffcell">${after}</td></tr>`;
   }).join("");
-  $("#tagTable").querySelectorAll("tr[data-id]").forEach(tr => {
+  $("#massTable").querySelectorAll("tr[data-id]").forEach(tr => {
     const id = +tr.dataset.id;
-    tr.querySelector(".inc").onchange = e => { state.tag.include.set(id, e.target.checked); tr.className = e.target.checked ? "" : "off"; renderTagCount(); };
+    tr.querySelector(".inc").onchange = e => { state.mass.include.set(id, e.target.checked); tr.className = e.target.checked ? "" : "off"; renderMassCount(); };
   });
-  $("#tagCheckAll").onchange = e => tagSetAll(e.target.checked);
-  renderTagCount();
+  $("#massCheckAll").onchange = e => massSetAll(e.target.checked);
+  renderMassCount();
 }
-const tagPending = () => (state.tag.view?.rows || []).filter(r => r.status === "change");
-function renderTagCount(){
-  const rows = state.tag.view?.rows || [], pend = tagPending(), n = pend.filter(r => state.tag.include.get(r.id)).length;
+const massPending = () => (state.mass.view?.rows || []).filter(r => r.status === "change");
+function renderMassCount(){
+  const rows = state.mass.view?.rows || [], pend = massPending(), n = pend.filter(r => state.mass.include.get(r.id)).length;
   const applied = rows.filter(r => r.status === "applied").length, failed = rows.filter(r => r.status === "failed").length;
-  $("#tagCount").textContent = `${rows.length} note${rows.length===1?"":"s"} · ${n} selected` +
-    (applied ? ` · ${applied} applied` : "") + (failed ? ` · ${failed} not tagged` : "");
-  $("#tagApply").textContent = `Apply to ${n} note${n===1?"":"s"}`;
-  $("#tagApply").disabled = !n;
+  $("#massCount").textContent = `${plural(rows.length, "note")} · ${n} selected` +
+    (applied ? ` · ${applied} applied` : "") + (failed ? ` · ${failed} not changed` : "");
+  $("#massApply").textContent = `Apply to ${plural(n, "note")}`;
+  $("#massApply").disabled = !n;
   const all = pend.length && n === pend.length;
-  $("#tagSelectAll").textContent = all ? "Select none" : "Select all";
-  $("#tagSelectAll").disabled = !pend.length;
-  const ca = $("#tagCheckAll");
+  $("#massSelectAll").textContent = all ? "Select none" : "Select all";
+  $("#massSelectAll").disabled = !pend.length;
+  const ca = $("#massCheckAll");
   if (ca) { ca.checked = all; ca.indeterminate = n > 0 && !all; ca.disabled = !pend.length; }
 }
-function tagSetAll(on){ tagPending().forEach(r => state.tag.include.set(r.id, on)); renderTagTable(); }
-$("#tagSelectAll").onclick = () => tagSetAll(tagPending().some(r => !state.tag.include.get(r.id)));
-$("#tagApply").onclick = async () => {
-  const ids = tagPending().filter(r => state.tag.include.get(r.id)).map(r => r.id);
+function massSetAll(on){ massPending().forEach(r => state.mass.include.set(r.id, on)); renderMassTable(); }
+$("#massSelectAll").onclick = () => massSetAll(massPending().some(r => !state.mass.include.get(r.id)));
+$("#massApply").onclick = async () => {
+  const ids = massPending().filter(r => state.mass.include.get(r.id)).map(r => r.id);
   if (!ids.length) return;
-  const how = {add: "add tags to", overwrite: "replace the tags of", skip: "tag"}[state.tag.view.mode] || "change";
-  if (!confirm(`This will ${how} ${ids.length} note${ids.length===1?"":"s"} in Anki. Continue?`)) return;
-  $("#tagApply").disabled = true;
-  notice("#tagApplyStatus", "good", '<span class="spin"></span> Updating tags in Anki...');
+  if (!confirm(`This will change ${plural(ids.length, "note")} in Anki. You can put them back with Undo last apply. Continue?`)) return;
+  $("#massApply").disabled = true;
+  notice("#massApplyStatus", "good", '<span class="spin"></span> Updating notes in Anki...');
   try {
-    const r = await post("/api/autotag/apply", {ids});
-    state.tag.view = r.state; renderTagTable();
-    notice("#tagApplyStatus", r.errors.length ? "warn" : "good",
-      `Updated the tags of ${r.applied} note${r.applied===1?"":"s"}.` + (r.errors.length ? "<br>Problems:<br>" + r.errors.map(esc).join("<br>") : ""));
-  } catch (e) { notice("#tagApplyStatus", "bad", esc(e.message)); renderTagCount(); }
+    const r = await post("/api/mass/apply", {ids});
+    renderMassState(r.state);
+    notice("#massApplyStatus", r.errors.length ? "warn" : "good",
+      `Updated ${plural(r.applied, "note")}.` + (r.errors.length ? "<br>Problems:<br>" + r.errors.map(esc).join("<br>") : ""));
+  } catch (e) { notice("#massApplyStatus", "bad", esc(e.message)); renderMassCount(); }
+};
+$("#massUndo").onclick = async () => {
+  const u = state.mass.view?.undo;
+  if (!u || !confirm(`Put back ${plural(u.count, "note")} as they were before the last apply? Notes you edited in Anki since then are left alone.`)) return;
+  $("#massUndo").disabled = true;
+  notice("#massUndoStatus", "good", '<span class="spin"></span> Putting notes back...');
+  try {
+    const r = await post("/api/mass/undo", {});
+    renderMassState(r.state);
+    notice("#massUndoStatus", r.errors.length ? "warn" : "good",
+      `Put back ${plural(r.restored, "note")}.` + (r.errors.length ? "<br>" + r.errors.map(esc).join("<br>") : ""));
+  } catch (e) { notice("#massUndoStatus", "bad", esc(e.message)); }
+  finally { $("#massUndo").disabled = false; }
 };
 
 // ---------- Nadeshiko ----------
@@ -1606,7 +1849,7 @@ async function loadNade(){
   try { const v = await api("/api/nadeshiko/state"); renderNade(v); if (v.job.running) nadeWatch(); } catch (e) {}
 }
 
-(async () => { await loadSettings(); loadNade(); loadMediaInfo(); loadTag(); await refreshAnki(); checkProvider(); })();
+(async () => { await loadSettings(); loadNade(); loadMediaInfo(); loadMass(); await refreshAnki(); checkProvider(); })();
 </script>
 </body>
 </html>

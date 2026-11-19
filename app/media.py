@@ -1,4 +1,4 @@
-"""Find an example sentence (image + audio + Japanese and English subtitles) on Nadeshiko
+"""Find an example sentence (video clip + Japanese and English subtitles) on Nadeshiko
 for a card, preferring the anime ticked in the Nadeshiko tab."""
 import html
 import re
@@ -7,12 +7,15 @@ import time
 import requests
 
 SEARCH_URL = "https://api.nadeshiko.co/v1/search"
+SEGMENT_URL = "https://api.nadeshiko.co/v1/media/segments/"
 CDN = "https://cdn.nadeshiko.co/"
 CATEGORIES = ["ANIME", "JDRAMA", "YOUTUBE", "AUDIOBOOK"]
 TAKE = 10
 ENOUGH = 3          # stop searching wider once this many sentences were found
 LONG = 60           # sentences longer than this go to the back of the list
-FILE_RE = re.compile(r"nadeshiko_[A-Za-z0-9_-]{12}\.(?:webp|mp3)")
+FILE_RE = re.compile(r"nadeshiko_[A-Za-z0-9_-]{12}(?:_[0-9a-f]{3})?\.(?:mp4|webp|mp3)")
+OLD_ID_RE = re.compile(r"nadeshiko_([A-Za-z0-9_-]{12})\.(?:mp4|webp|mp3)")
+CLIP_RE = re.compile(r"nadeshiko_([a-z0-9_-]{12})_([0-9a-f]{3})\.mp4")
 
 
 class MediaError(Exception):
@@ -30,10 +33,13 @@ def search_term(value):
     return ""
 
 
-def _post(key, body):
+def _post(key, body, url=SEARCH_URL):
     for attempt in range(4):
         try:
-            r = requests.post(SEARCH_URL, headers={"Authorization": "Bearer " + key}, json=body, timeout=30)
+            if body is None:
+                r = requests.get(url, headers={"Authorization": "Bearer " + key}, timeout=30)
+            else:
+                r = requests.post(url, headers={"Authorization": "Bearer " + key}, json=body, timeout=30)
         except requests.RequestException as e:
             raise MediaError(f"Couldn't reach Nadeshiko: {e}")
         if r.status_code == 429:
@@ -46,7 +52,7 @@ def _post(key, body):
         if r.status_code >= 500:
             raise MediaError(f"Nadeshiko had an error ({r.status_code}). Try again in a minute.")
         if not r.ok:
-            return {"segments": []}  # it didn't accept this query: same as no result
+            return {"segments": []} if body is not None else {}  # not accepted or not found: no result
         return r.json()
     raise MediaError("Nadeshiko is busy. Try again in a minute.")
 
@@ -68,13 +74,52 @@ def _candidate(seg, names, mine):
         "en": en,
         "en_machine": bool((seg.get("textEn") or {}).get("isMachineTranslated")),
         "image": seg["urls"]["imageUrl"],
-        "audio": seg["urls"]["audioUrl"],
-        "image_file": f"nadeshiko_{sid}.webp",
-        "audio_file": f"nadeshiko_{sid}.mp3",
+        "video": seg["urls"]["videoUrl"],
+        "video_file": clip_name(sid),
         "source": (m.get("nameEn") or m.get("nameRomaji") or "") + (f", episode {ep}" if ep else ""),
         "category": m.get("category") or "",
         "mine": seg["mediaPublicId"] in mine,
     }
+
+
+def clip_name(sid):
+    """File name for a sentence's clip. Nadeshiko IDs mix upper and lower case, but Windows and
+    Anki's media folder don't keep case apart: Anki saved "eY2" as "ey2", so the cards pointed at a
+    name the iPhone couldn't find. The name is lowercase, plus which letters were capitals."""
+    mask = sum(1 << i for i, ch in enumerate(sid) if ch.isupper())
+    return f"nadeshiko_{sid.lower()}_{mask:03x}.mp4"
+
+
+def sentence_id(value):
+    """The Nadeshiko ID a field's media came from, or None."""
+    m = CLIP_RE.search(value or "")
+    if m:
+        mask = int(m.group(2), 16)
+        return "".join(ch.upper() if mask >> i & 1 else ch for i, ch in enumerate(m.group(1)))
+    m = OLD_ID_RE.search(value or "")
+    return m.group(1) if m else None
+
+
+def store(invoke, files):
+    """Have Anki download each clip. Returns ({asked name: name Anki saved it as}, errors).
+    Anki can save a file under another name, and the cards must use the name it chose."""
+    saved, errors = {}, []
+    for fname, url in files.items():
+        if not url.startswith(CDN):
+            continue
+        try:
+            got = invoke("storeMediaFile", filename=fname, url=url)
+            saved[fname] = got if isinstance(got, str) and got else fname
+        except Exception as e:
+            errors.append(f"{fname}: {e}")
+    return saved, errors
+
+
+def rename(value, saved):
+    for old, new in saved.items():
+        if old != new:
+            value = value.replace(old, new)
+    return value
 
 
 def _search(key, term, exact, categories, include=None, prefer=None):
@@ -145,3 +190,16 @@ def files_to_store(cards_fields, media_files):
         if url.startswith(CDN):
             out[name] = url
     return out
+
+
+def segment(key, sid, my_ids=()):
+    """The same sentence again by its ID, or None when Nadeshiko no longer has it."""
+    seg = _post(key, None, SEGMENT_URL + sid)
+    if not seg.get("publicId") or not (seg.get("urls") or {}).get("videoUrl"):
+        return None
+    return _candidate(seg, {}, set(my_ids))
+
+
+def field_html(c):
+    """The Media field value. Keep in step with mediaHtml in index.html."""
+    return f'[sound:{c["video_file"]}]<br>{c["ja_html"]}<br>{html.escape(c["en"], quote=False).replace('"', "&quot;")}'
