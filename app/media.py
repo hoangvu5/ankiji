@@ -65,12 +65,17 @@ def _candidate(seg, names, mine):
     parts = [html.escape(html.unescape(re.sub(r"<[^>]+>", "", p)))
              for p in re.split(r"</?(?:em|mark)>", seg["textJa"].get("highlight") or ja)]
     ja_html = "".join(p if i % 2 == 0 else f"<b>{p}</b>" for i, p in enumerate(parts) if p)
+    furi = _furigana(seg["textJa"], ja)
     en = (seg.get("textEn") or {}).get("content") or ""
     ep = seg.get("episode")
     return {
         "id": sid,
         "ja": ja,
         "ja_html": ja_html,
+        # with readings: Anki's furigana format (食[た]べる) for the field, <ruby> for the preview.
+        # None when Nadeshiko has no word analysis for this line.
+        "ja_furi": furi and furi[0],
+        "ja_ruby": furi and furi[1],
         "en": en,
         "en_machine": bool((seg.get("textEn") or {}).get("isMachineTranslated")),
         "image": seg["urls"]["imageUrl"],
@@ -80,6 +85,66 @@ def _candidate(seg, names, mine):
         "category": m.get("category") or "",
         "mine": seg["mediaPublicId"] in mine,
     }
+
+
+def _bold_chars(text_ja, content):
+    """Character positions in content that the search highlighted."""
+    bold, pos = set(), 0
+    for i, p in enumerate(re.split(r"</?(?:em|mark)>", text_ja.get("highlight") or "")):
+        p = html.unescape(re.sub(r"<[^>]+>", "", p))
+        if i % 2:
+            bold.update(range(pos, pos + len(p)))
+        pos += len(p)
+    return bold if pos == len(content) else set()
+
+
+def _furigana(text_ja, content):
+    """The Japanese line with readings over the kanji, from Nadeshiko's word analysis.
+    Returns (Anki furigana text, <ruby> HTML) or None when there is no analysis."""
+    tokens = sorted((t for t in text_ja.get("tokens") or [] if isinstance(t, dict)), key=lambda t: t.get("b", 0))
+    if not tokens:
+        return None
+    pieces, pos = [], 0   # (text, reading or None, start)
+    for t in tokens:
+        b, e = t.get("b"), t.get("e")
+        if not isinstance(b, int) or not isinstance(e, int) or b < pos or e > len(content) or e <= b:
+            continue
+        if b > pos:
+            pieces.append((content[pos:b], None, pos))
+        f = t.get("f") or []
+        if f and "".join(x.get("t", "") for x in f) == content[b:e]:
+            at = b
+            for x in f:
+                pieces.append((x["t"], x.get("r") or None, at))
+                at += len(x["t"])
+        else:
+            pieces.append((content[b:e], None, b))
+        pos = e
+    if pos < len(content):
+        pieces.append((content[pos:], None, pos))
+    if not any(r for _, r, _ in pieces):
+        return None
+    bold = _bold_chars(text_ja, content)
+    anki, ruby, in_bold = [], [], False
+    for text, reading, start in pieces:
+        b = any(i in bold for i in range(start, start + len(text)))
+        if b != in_bold:
+            anki.append("<b>" if b else "</b>")
+            ruby.append("<b>" if b else "</b>")
+            in_bold = b
+        t = html.escape(text, quote=False)
+        if reading:
+            r = html.escape(reading, quote=False)
+            # The space tells Anki where the word starts; it is not shown on the card.
+            anki.append(f" {t.replace('[', '［').replace(']', '］')}[{r.replace('[', '［').replace(']', '］')}]")
+            ruby.append(f"<ruby>{t}<rt>{r}</rt></ruby>")
+        else:
+            anki.append(t.replace("[", "［").replace("]", "］"))
+            ruby.append(t)
+    if in_bold:
+        anki.append("</b>")
+        ruby.append("</b>")
+    return "".join(anki), "".join(ruby)
 
 
 def clip_name(sid):
@@ -200,6 +265,8 @@ def segment(key, sid, my_ids=()):
     return _candidate(seg, {}, set(my_ids))
 
 
-def field_html(c):
-    """The Media field value. Keep in step with mediaHtml in index.html."""
-    return f'[sound:{c["video_file"]}]<br>{c["ja_html"]}<br>{html.escape(c["en"], quote=False).replace('"', "&quot;")}'
+def field_html(c, furigana=False):
+    """The Media field value. Keep in step with mediaHtml in index.html.
+    With furigana, the Japanese line uses Anki's format, shown by {{furigana:Media}} on the card."""
+    ja = (furigana and c.get("ja_furi")) or c["ja_html"]
+    return f'[sound:{c["video_file"]}]<br>{ja}<br>{html.escape(c["en"], quote=False).replace('"', "&quot;")}'
