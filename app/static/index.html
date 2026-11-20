@@ -138,7 +138,8 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--code);padding:1px
 .mediabar .kinds label{display:flex;gap:6px;align-items:center;font-weight:500;margin:4px 0}
 .mcell{display:flex;gap:10px;min-width:330px;align-items:flex-start}
 .mcell video{width:180px;border-radius:6px;border:1px solid var(--line);display:block;background:#000}
-.mcell .ja{font-size:15px}
+.mcell .ja{font-size:15px;line-height:1.9}
+.mcell .ja rt{font-size:10px}
 .mcell .en{font-size:13px;color:var(--muted)}
 .mcell .src{font-size:11.5px;color:var(--muted);margin-top:2px}
 .mcell .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -343,6 +344,8 @@ input.mono{font-family:var(--mono);font-size:13px}
         <label><input type="checkbox" value="AUDIOBOOK"> Audiobook</label>
       </div>
       <div style="margin:6px 0;font-size:14px;font-weight:500"><label for="mediaFallback" style="display:inline;margin:0;font-weight:500"><input type="checkbox" id="mediaFallback" style="vertical-align:-2px;margin:0 6px 0 0">If the word isn't in</label> <button class="link" data-goto="nadeshikoTab">my anime</button>, use other titles</div>
+      <div style="margin:6px 0;font-size:14px;font-weight:500"><label for="mediaFurigana" style="display:inline;margin:0;font-weight:500"><input type="checkbox" id="mediaFurigana" style="vertical-align:-2px;margin:0 6px 0 0">Add furigana to the Japanese line</label></div>
+      <div class="hint">Shown on the card with <code>{{furigana:Media}}</code>. The ready-made Japanese note type does this, and a tap on the sentence shows or hides the readings.</div>
     </details>
     <div id="mediaStatus"></div>
   </div>
@@ -459,7 +462,7 @@ input.mono{font-family:var(--mono);font-size:13px}
           <div><label for="massWordField">Word to search from</label><select id="massWordField"></select></div>
         </div>
         <label class="check"><input type="checkbox" id="mediaReplace"><span>Replace media that is already there<small>If it came from Nadeshiko, the same sentence comes back as a video clip. Otherwise a new sentence is searched.</small></span></label>
-        <div class="hint" id="massMediaHint">Uses your Nadeshiko key and anime, and the kinds of media chosen under Options in <b>Create cards</b>.</div>
+        <div class="hint" id="massMediaHint">Uses your Nadeshiko key and anime, and the kinds of media and furigana choice under Options in <b>Create cards</b>.</div>
       </section>
     </div>
 
@@ -764,6 +767,7 @@ function fillForm(s){
   $("#malProfile").value = s.mal_profile;
   $("#mediaKinds").querySelectorAll("input").forEach(i => i.checked = (s.media_categories || []).includes(i.value));
   $("#mediaFallback").checked = !!s.media_fallback;
+  $("#mediaFurigana").checked = !!s.media_furigana;
   showNadeKeyHint(s);
   fillTagForm(s);
   showKey("#apiKey", s.openai_key_hint);
@@ -1178,7 +1182,8 @@ function pickMediaField(fields){
   return fields.find(f => f.trim().toLowerCase() === "media") || "";
 }
 function mediaKinds(){ return [...$("#mediaKinds").querySelectorAll("input:checked")].map(i => i.value); }
-function mediaHtml(m){ return `[sound:${m.video_file}]<br>${m.ja_html}<br>${esc(m.en)}`; }
+const furiOn = () => $("#mediaFurigana").checked;
+function mediaHtml(m){ return `[sound:${m.video_file}]<br>${(furiOn() && m.ja_furi) || m.ja_html}<br>${esc(m.en)}`; }
 function applyMedia(c){
   const j = (state.reviewFields || state.fields).indexOf($("#mediaField").value);
   if (j < 0) return;
@@ -1226,7 +1231,7 @@ function mediaCell(c){
     ${md.candidates.length ? '<div class="btns"><button class="small mnext">Show sentences again</button></div>' : ""}</div>`;
   const total = md.candidates.length;
   return `<div class="mcell"><video src="${esc(m.video)}" poster="${esc(m.image)}" controls preload="none"></video>
-    <div><div class="ja">${m.ja_html}</div><div class="en">${esc(m.en)}${m.en_machine ? " (machine translated)" : ""}</div>
+    <div><div class="ja">${(furiOn() && m.ja_ruby) || m.ja_html}</div><div class="en">${esc(m.en)}${m.en_machine ? " (machine translated)" : ""}</div>
       <div class="src">${m.mine ? "★ Your anime: " : "Other title: "}${esc(m.source)}</div>
       <div class="btns"><button class="small mnext" ${total < 2 ? "disabled" : ""}>Next sentence (${md.idx + 1}/${total})</button>
         <button class="small mremove">Remove</button></div>${again}</div></div>`;
@@ -1297,6 +1302,12 @@ $("#mediaField").onchange = () => { saveNow({media_field: $("#mediaField").value
 $("#mediaSearchField").onchange = () => { saveNow({media_search_field: $("#mediaSearchField").value}); state.settings.media_search_field = $("#mediaSearchField").value; };
 $("#mediaKinds").querySelectorAll("input").forEach(i => i.onchange = () => saveNow({media_categories: mediaKinds()}));
 $("#mediaFallback").onchange = () => saveNow({media_fallback: $("#mediaFallback").checked});
+$("#mediaFurigana").onchange = () => {
+  saveNow({media_furigana: furiOn()});
+  const filled = state.cards.filter(c => c.media);   // switch cards already filled
+  filled.forEach(applyMedia);
+  if (filled.length) renderTable();
+};
 
 $("#send").onclick = async () => {
   const chosen = state.cards.filter(c => c.include);

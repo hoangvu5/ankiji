@@ -53,9 +53,14 @@ WORD_ANSWER = r"""<div class="jp" id="c1-word">{{Front}}</div>
 </script>"""
 
 MEDIA_BLOCK = r"""{{#Media}}
-<div class="nade-media">{{Media}}</div>
+<div class="nade-media hide-furi" id="nade-media">{{furigana:Media}}</div>
 <script>
 (function () {
+  var box = document.getElementById("nade-media");
+  if (box) box.onclick = function (e) {   // tap the sentence: show or hide the readings
+    e.stopPropagation();
+    box.classList.toggle("hide-furi");
+  };
   function tame(v) {
     if (v.getAttribute("data-tamed")) return;
     v.setAttribute("data-tamed", "1");
@@ -404,7 +409,8 @@ JP_CSS = r""".card {
 #hw-buttons button:disabled { opacity: .4; }
 
 
-.nade-media { margin-top: 12px; }
+.nade-media { margin-top: 12px; cursor: pointer; }
+.hide-furi rt { visibility: hidden; }
 .nade-btn { display: inline-block; margin-top: 14px; padding: 8px 16px; border-radius: 10px;
             background: #e8507a; color: #fff !important; text-decoration: none; font-size: 16px; }
 .nade-alt { background: transparent !important; color: #e8507a !important; border: 1px solid #e8507a; margin-left: 8px; }

@@ -441,7 +441,7 @@ def _do_media(notes, opt, settings, job):
             if not c:
                 rows.append(_row(n, status="failed", reason=how))
                 continue
-            new = media.field_html(c)
+            new = media.field_html(c, bool(settings.get("media_furigana")))
             if not _changed(n["fields"][target], new):
                 counts["same"] += 1
                 continue
